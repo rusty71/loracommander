@@ -7,8 +7,9 @@
  */
 #include "atmel_start.h"
 #include "rtos_start.h"
+#include "cdc_drv.h"
 
-#define TASK_EXAMPLE_STACK_SIZE (128 / sizeof(portSTACK_TYPE))
+#define TASK_EXAMPLE_STACK_SIZE (1024 / sizeof(portSTACK_TYPE))
 #define TASK_EXAMPLE_STACK_PRIORITY (tskIDLE_PRIORITY + 1)
 static TaskHandle_t      xCreatedExampleTask;
 static SemaphoreHandle_t disp_mutex;
@@ -21,24 +22,24 @@ static SemaphoreHandle_t disp_mutex;
  */
 static void example_task(void *p)
 {
-    static bool toggle = false;
 	(void)p;
     volatile TickType_t now;
+    uint8_t buffer[100];
+    uint16_t len;
+
+    cdc_wait_CDC();
+    cdc_wait_DTR();
+
 	while (1) {
-        /* add your code */
-        //~ if(toggle){
-            //~ toggle = false;
-            //~ gpio_set_pin_level(LED_YELLOW,true);
-        //~ }
-        //~ else {
-            //~ toggle = true;
-            //~ gpio_set_pin_level(LED_YELLOW,false);
-        //~ }
-        now = xTaskGetTickCount();
-        while((xTaskGetTickCount()<(now+10)))
-            ;
-        
-		os_sleep(200);
+        //~ now = xTaskGetTickCount();
+        //~ while((xTaskGetTickCount()<(now+10)))
+            //~ ;
+        if((len = cdc_read(buffer, 1, 1000))) {
+        //~ os_sleep(10);
+
+            cdc_write(buffer, len);
+        }            
+        //~ os_sleep(10);
 	}
 }
 

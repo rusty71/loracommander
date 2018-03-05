@@ -12,7 +12,6 @@ CFLAGS = -std=gnu99
 LDFLAGS = -lstdc++_nano -Wl,--start-group -lm -Wl,--end-group -mthumb -Wl,-Map="$(TARGET).map" --specs=nano.specs -Wl,--gc-sections -mcpu=cortex-m0plus -T"../samd21a/gcc/gcc/samd21g18a_flash.ld" -L"../samd21a/gcc/gcc"
 #~ LIBS = -lm
 
-
 CC = arm-none-eabi-gcc
 CXX = arm-none-eabi-g++
 OBJCOPY = arm-none-eabi-objcopy
@@ -20,7 +19,11 @@ SIZE = arm-none-eabi-size
 
 #~ PROJECT_FILES := $(wildcard *.c)
 
-PROJECT_OBJS = $(SRC_ROOT)main.o	#~tickless.o
+PROJECT_OBJS = $(SRC_ROOT)main.o \
+				$(SRC_ROOT)uart.o \
+				$(SRC_ROOT)cdc_drv.o \
+				$(SRC_ROOT)assert.o
+				
 
 ASF4_OBJS = $(SRC_ROOT)hal/src/hal_io.o \
 			$(SRC_ROOT)thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/list.o \
@@ -43,7 +46,6 @@ ASF4_OBJS = $(SRC_ROOT)hal/src/hal_io.o \
 			$(SRC_ROOT)hal/utils/src/utils_list.o \
 			$(SRC_ROOT)hpl/core/hpl_core_m0plus_base.o \
 			$(SRC_ROOT)hal/utils/src/utils_assert.o \
-			$(SRC_ROOT)usb_start.o \
 			$(SRC_ROOT)hpl/pm/hpl_pm.o \
 			$(SRC_ROOT)hal/src/hal_usart_sync.o \
 			$(SRC_ROOT)hpl/sercom/hpl_sercom.o \

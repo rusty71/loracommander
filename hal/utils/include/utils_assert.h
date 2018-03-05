@@ -49,6 +49,7 @@ extern "C" {
 #endif
 
 #include <compiler.h>
+#include "assert.h"
 
 #ifndef USE_SIMPLE_ASSERT
 //# define USE_SIMPLE_ASSERT
@@ -72,7 +73,14 @@ extern "C" {
 	if (!(condition))                                                                                                  \
 		__asm("BKPT #0");
 #else
-#define ASSERT_IMPL(condition, file, line) assert((condition), file, line)
+//~ #define ASSERT_IMPL(condition, file, line) assert((condition), file, line)
+#define ASSERT_IMPL(condition, file, line)                                                                             \
+	if ((condition) == 0) {                                                                                                    \
+        myvAssertCalled( (char *)file, (int)line );                                                                           \
+		for (;;)                                                                                                       \
+			;                                                                                                          \
+	}
+
 #endif
 
 #else /* DEBUG */
