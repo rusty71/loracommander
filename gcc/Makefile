@@ -1,281 +1,93 @@
+SRC_ROOT=../
+TARGET = loracommander
 
-################################################################################
-# Automatically-generated file. Do not edit!
-################################################################################
+INCLUDES = -I"../" -I"../config" -I"../examples" -I"../hal/include" -I"../hal/utils/include" -I"../hpl/core" -I"../hpl/dmac" -I"../hpl/eic" -I"../hpl/gclk" -I"../hpl/pm" -I"../hpl/port" -I"../hpl/rtc" -I"../hpl/sercom" -I"../hpl/sysctrl" -I"../hpl/usb" -I"../hri" -I"../" -I"../config" -I"../thirdparty/RTOS" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/include" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/portable/GCC/ARM_CM0" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0/module_config" -I"../" -I"../config" -I"../usb" -I"../usb/class/cdc" -I"../usb/class/cdc/device" -I"../usb/device" -I"../" -I"../CMSIS/Include" -I"../samd21a/include"
+#~ CPPFLAGS = -x c -mthumb -DDEBUG -Os -ffunction-sections -mlong-calls -g3 -Wall -c -std=gnu99 -D__SAMD21G18A__ -mcpu=cortex-m0plus $(INCLUDES)
+CPPFLAGS = -mthumb -DDEBUG -Os -ffunction-sections -mlong-calls -g3 -Wall -D__SAMD21G18A__ -mcpu=cortex-m0plus $(INCLUDES)
+#~ -std=c99, -std=gnu99, -std=c11 or -std=gnu11
+CXXFLAGS = -fno-exceptions -std=c++11 
 
-ifdef SystemRoot
-	SHELL = cmd.exe
-	MK_DIR = mkdir
-else
-	ifeq ($(shell uname), Linux)
-		MK_DIR = mkdir -p
-	endif
+CFLAGS = -std=gnu99
 
-	ifeq ($(shell uname | cut -d _ -f 1), CYGWIN)
-		MK_DIR = mkdir -p
-	endif
-
-	ifeq ($(shell uname | cut -d _ -f 1), MINGW32)
-		MK_DIR = mkdir -p
-	endif
-
-	ifeq ($(shell uname | cut -d _ -f 1), MINGW64)
-		MK_DIR = mkdir -p
-	endif
-endif
-
-# List the subdirectories for creating object files
-SUB_DIRS +=  \
- \
-usb/class/cdc/device \
-examples \
-thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source \
-thirdparty/RTOS/freertos/FreeRTOSV10.0.0 \
-usb \
-hpl/dmac \
-hal/src \
-hpl/eic \
-hpl/rtc \
-hpl/usb \
-samd21a/gcc/gcc \
-thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/portable/MemMang \
-hpl/pm \
-hpl/sysctrl \
-hpl/gclk \
-hal/utils/src \
-usb/device \
-thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/portable/GCC/ARM_CM0 \
-samd21a/gcc \
-hpl/sercom \
-hpl/core
-
-# List the object files
-OBJS +=  \
-hal/src/hal_io.o \
-thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/list.o \
-thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/portable/MemMang/heap_1.o \
-thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/event_groups.o \
-thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/croutine.o \
-samd21a/gcc/gcc/startup_samd21.o \
-hpl/eic/hpl_eic.o \
-thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/stream_buffer.o \
-usb/class/cdc/device/cdcdf_acm.o \
-hal/utils/src/utils_syscalls.o \
-thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/queue.o \
-hal/src/hal_spi_m_sync.o \
-hal/src/hal_timer.o \
-hpl/usb/hpl_usb.o \
-thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/timers.o \
-hal/src/hal_delay.o \
-hpl/sysctrl/hpl_sysctrl.o \
-hpl/core/hpl_init.o \
-hal/utils/src/utils_list.o \
-hpl/core/hpl_core_m0plus_base.o \
-hal/utils/src/utils_assert.o \
-usb_start.o \
-hpl/pm/hpl_pm.o \
-hal/src/hal_usart_sync.o \
-hpl/sercom/hpl_sercom.o \
-hpl/gclk/hpl_gclk.o \
-usb/usb_protocol.o \
-hal/src/hal_init.o \
-thirdparty/RTOS/freertos/FreeRTOSV10.0.0/rtos_port.o \
-hal/src/hal_usb_device.o \
-rtos_start.o \
-samd21a/gcc/system_samd21.o \
-hpl/rtc/hpl_rtc.o \
-examples/driver_examples.o \
-driver_init.o \
-hal/src/hal_ext_irq.o \
-main.o \
-hal/src/hal_gpio.o \
-thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/portable/GCC/ARM_CM0/port.o \
-hal/utils/src/utils_event.o \
-hal/src/hal_sleep.o \
-hpl/dmac/hpl_dmac.o \
-atmel_start.o \
-usb/device/usbdc.o \
-hal/src/hal_atomic.o \
-thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/tasks.o
-
-OBJS_AS_ARGS +=  \
-"hal/src/hal_io.o" \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/list.o" \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/portable/MemMang/heap_1.o" \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/event_groups.o" \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/croutine.o" \
-"samd21a/gcc/gcc/startup_samd21.o" \
-"hpl/eic/hpl_eic.o" \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/stream_buffer.o" \
-"usb/class/cdc/device/cdcdf_acm.o" \
-"hal/utils/src/utils_syscalls.o" \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/queue.o" \
-"hal/src/hal_spi_m_sync.o" \
-"hal/src/hal_timer.o" \
-"hpl/usb/hpl_usb.o" \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/timers.o" \
-"hal/src/hal_delay.o" \
-"hpl/sysctrl/hpl_sysctrl.o" \
-"hpl/core/hpl_init.o" \
-"hal/utils/src/utils_list.o" \
-"hpl/core/hpl_core_m0plus_base.o" \
-"hal/utils/src/utils_assert.o" \
-"usb_start.o" \
-"hpl/pm/hpl_pm.o" \
-"hal/src/hal_usart_sync.o" \
-"hpl/sercom/hpl_sercom.o" \
-"hpl/gclk/hpl_gclk.o" \
-"usb/usb_protocol.o" \
-"hal/src/hal_init.o" \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/rtos_port.o" \
-"hal/src/hal_usb_device.o" \
-"rtos_start.o" \
-"samd21a/gcc/system_samd21.o" \
-"hpl/rtc/hpl_rtc.o" \
-"examples/driver_examples.o" \
-"driver_init.o" \
-"hal/src/hal_ext_irq.o" \
-"main.o" \
-"hal/src/hal_gpio.o" \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/portable/GCC/ARM_CM0/port.o" \
-"hal/utils/src/utils_event.o" \
-"hal/src/hal_sleep.o" \
-"hpl/dmac/hpl_dmac.o" \
-"atmel_start.o" \
-"usb/device/usbdc.o" \
-"hal/src/hal_atomic.o" \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/tasks.o"
-
-# List the dependency files
-DEPS := $(OBJS:%.o=%.d)
-
-DEPS_AS_ARGS +=  \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/event_groups.d" \
-"samd21a/gcc/gcc/startup_samd21.d" \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/croutine.d" \
-"hal/utils/src/utils_event.d" \
-"hal/src/hal_io.d" \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/portable/MemMang/heap_1.d" \
-"hpl/eic/hpl_eic.d" \
-"hal/utils/src/utils_syscalls.d" \
-"usb/class/cdc/device/cdcdf_acm.d" \
-"hpl/usb/hpl_usb.d" \
-"main.d" \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/timers.d" \
-"hal/src/hal_timer.d" \
-"hal/src/hal_spi_m_sync.d" \
-"hpl/core/hpl_core_m0plus_base.d" \
-"hal/utils/src/utils_list.d" \
-"usb_start.d" \
-"hal/utils/src/utils_assert.d" \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/stream_buffer.d" \
-"hal/src/hal_delay.d" \
-"hpl/core/hpl_init.d" \
-"hpl/sysctrl/hpl_sysctrl.d" \
-"usb/usb_protocol.d" \
-"hpl/gclk/hpl_gclk.d" \
-"hal/src/hal_usb_device.d" \
-"hpl/dmac/hpl_dmac.d" \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/rtos_port.d" \
-"hal/src/hal_init.d" \
-"hal/src/hal_usart_sync.d" \
-"driver_init.d" \
-"samd21a/gcc/system_samd21.d" \
-"rtos_start.d" \
-"examples/driver_examples.d" \
-"hpl/rtc/hpl_rtc.d" \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/list.d" \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/queue.d" \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/portable/GCC/ARM_CM0/port.d" \
-"hal/src/hal_sleep.d" \
-"hpl/sercom/hpl_sercom.d" \
-"hal/src/hal_gpio.d" \
-"atmel_start.d" \
-"hal/src/hal_atomic.d" \
-"usb/device/usbdc.d" \
-"hpl/pm/hpl_pm.d" \
-"thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/tasks.d" \
-"hal/src/hal_ext_irq.d"
-
-OUTPUT_FILE_NAME :=AtmelStart
-QUOTE := "
-OUTPUT_FILE_PATH +=$(OUTPUT_FILE_NAME).elf
-OUTPUT_FILE_PATH_AS_ARGS +=$(OUTPUT_FILE_NAME).elf
-
-vpath %.c ../
-vpath %.s ../
-vpath %.S ../
-
-# All Target
-all: $(SUB_DIRS) $(OUTPUT_FILE_PATH)
-
-# Linker target
+LDFLAGS = -lstdc++_nano -Wl,--start-group -lm -Wl,--end-group -mthumb -Wl,-Map="$(TARGET).map" --specs=nano.specs -Wl,--gc-sections -mcpu=cortex-m0plus -T"../samd21a/gcc/gcc/samd21g18a_flash.ld" -L"../samd21a/gcc/gcc"
+#~ LIBS = -lm
 
 
-$(OUTPUT_FILE_PATH): $(OBJS)
-	@echo Building target: $@
-	@echo Invoking: ARM/GNU Linker
-	$(QUOTE)arm-none-eabi-gcc$(QUOTE) -o $(OUTPUT_FILE_NAME).elf $(OBJS_AS_ARGS) -Wl,--start-group -lm -Wl,--end-group -mthumb \
--Wl,-Map="$(OUTPUT_FILE_NAME).map" --specs=nano.specs -Wl,--gc-sections -mcpu=cortex-m0plus \
- \
- \
--T"../samd21a/gcc/gcc/samd21g18a_flash.ld" \
--L"../samd21a/gcc/gcc"
-	@echo Finished building target: $@
+CC = arm-none-eabi-gcc
+CXX = arm-none-eabi-g++
+OBJCOPY = arm-none-eabi-objcopy
+SIZE = arm-none-eabi-size
 
-	"arm-none-eabi-objcopy" -O binary "$(OUTPUT_FILE_NAME).elf" "$(OUTPUT_FILE_NAME).bin"
-	"arm-none-eabi-objcopy" -O ihex -R .eeprom -R .fuse -R .lock -R .signature  \
-        "$(OUTPUT_FILE_NAME).elf" "$(OUTPUT_FILE_NAME).hex"
-	"arm-none-eabi-objcopy" -j .eeprom --set-section-flags=.eeprom=alloc,load --change-section-lma \
-        .eeprom=0 --no-change-warnings -O binary "$(OUTPUT_FILE_NAME).elf" \
-        "$(OUTPUT_FILE_NAME).eep" || exit 0
-	"arm-none-eabi-objdump" -h -S "$(OUTPUT_FILE_NAME).elf" > "$(OUTPUT_FILE_NAME).lss"
-	"arm-none-eabi-size" "$(OUTPUT_FILE_NAME).elf"
+#~ PROJECT_FILES := $(wildcard *.c)
 
-# Compiler targets
+PROJECT_OBJS = $(SRC_ROOT)main.o
 
+ASF4_OBJS = $(SRC_ROOT)hal/src/hal_io.o \
+			$(SRC_ROOT)thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/list.o \
+			$(SRC_ROOT)thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/portable/MemMang/heap_1.o \
+			$(SRC_ROOT)thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/event_groups.o \
+			$(SRC_ROOT)thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/croutine.o \
+			$(SRC_ROOT)samd21a/gcc/gcc/startup_samd21.o \
+			$(SRC_ROOT)hpl/eic/hpl_eic.o \
+			$(SRC_ROOT)thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/stream_buffer.o \
+			$(SRC_ROOT)usb/class/cdc/device/cdcdf_acm.o \
+			$(SRC_ROOT)hal/utils/src/utils_syscalls.o \
+			$(SRC_ROOT)thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/queue.o \
+			$(SRC_ROOT)hal/src/hal_spi_m_sync.o \
+			$(SRC_ROOT)hal/src/hal_timer.o \
+			$(SRC_ROOT)hpl/usb/hpl_usb.o \
+			$(SRC_ROOT)thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/timers.o \
+			$(SRC_ROOT)hal/src/hal_delay.o \
+			$(SRC_ROOT)hpl/sysctrl/hpl_sysctrl.o \
+			$(SRC_ROOT)hpl/core/hpl_init.o \
+			$(SRC_ROOT)hal/utils/src/utils_list.o \
+			$(SRC_ROOT)hpl/core/hpl_core_m0plus_base.o \
+			$(SRC_ROOT)hal/utils/src/utils_assert.o \
+			$(SRC_ROOT)usb_start.o \
+			$(SRC_ROOT)hpl/pm/hpl_pm.o \
+			$(SRC_ROOT)hal/src/hal_usart_sync.o \
+			$(SRC_ROOT)hpl/sercom/hpl_sercom.o \
+			$(SRC_ROOT)hpl/gclk/hpl_gclk.o \
+			$(SRC_ROOT)usb/usb_protocol.o \
+			$(SRC_ROOT)hal/src/hal_init.o \
+			$(SRC_ROOT)thirdparty/RTOS/freertos/FreeRTOSV10.0.0/rtos_port.o \
+			$(SRC_ROOT)hal/src/hal_usb_device.o \
+			$(SRC_ROOT)rtos_start.o \
+			$(SRC_ROOT)samd21a/gcc/system_samd21.o \
+			$(SRC_ROOT)hpl/rtc/hpl_rtc.o \
+			$(SRC_ROOT)examples/driver_examples.o \
+			$(SRC_ROOT)driver_init.o \
+			$(SRC_ROOT)hal/src/hal_ext_irq.o \
+			$(SRC_ROOT)hal/src/hal_gpio.o \
+			$(SRC_ROOT)thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/portable/GCC/ARM_CM0/port.o \
+			$(SRC_ROOT)hal/utils/src/utils_event.o \
+			$(SRC_ROOT)hal/src/hal_sleep.o \
+			$(SRC_ROOT)hpl/dmac/hpl_dmac.o \
+			$(SRC_ROOT)atmel_start.o \
+			$(SRC_ROOT)usb/device/usbdc.o \
+			$(SRC_ROOT)hal/src/hal_atomic.o \
+			$(SRC_ROOT)thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/tasks.o
 
-%.o: %.c
-	@echo Building file: $<
-	@echo ARM/GNU C Compiler
-	$(QUOTE)arm-none-eabi-gcc$(QUOTE) -x c -mthumb -DDEBUG -Os -ffunction-sections -mlong-calls -g3 -Wall -c -std=gnu99 \
--D__SAMD21G18A__ -mcpu=cortex-m0plus  \
--I"../" -I"../config" -I"../examples" -I"../hal/include" -I"../hal/utils/include" -I"../hpl/core" -I"../hpl/dmac" -I"../hpl/eic" -I"../hpl/gclk" -I"../hpl/pm" -I"../hpl/port" -I"../hpl/rtc" -I"../hpl/sercom" -I"../hpl/sysctrl" -I"../hpl/usb" -I"../hri" -I"../" -I"../config" -I"../thirdparty/RTOS" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/include" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/portable/GCC/ARM_CM0" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0/module_config" -I"../" -I"../config" -I"../usb" -I"../usb/class/cdc" -I"../usb/class/cdc/device" -I"../usb/device" -I"../" -I"../CMSIS/Include" -I"../samd21a/include"  \
--MD -MP -MF "$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -MT"$(@:%.o=%.o)"  -o "$@" "$<"
-	@echo Finished building: $<
+#~ OBJS := $(C_FILES:.c=.o) $(CPP_FILES:.cpp=.o)
+OBJS := $(ASF4_OBJS) $(PROJECT_OBJS)
 
-%.o: %.s
-	@echo Building file: $<
-	@echo ARM/GNU Assembler
-	$(QUOTE)arm-none-eabi-as$(QUOTE) -x c -mthumb -DDEBUG -Os -ffunction-sections -mlong-calls -g3 -Wall -c -std=gnu99 \
--D__SAMD21G18A__ -mcpu=cortex-m0plus  \
--I"../" -I"../config" -I"../examples" -I"../hal/include" -I"../hal/utils/include" -I"../hpl/core" -I"../hpl/dmac" -I"../hpl/eic" -I"../hpl/gclk" -I"../hpl/pm" -I"../hpl/port" -I"../hpl/rtc" -I"../hpl/sercom" -I"../hpl/sysctrl" -I"../hpl/usb" -I"../hri" -I"../" -I"../config" -I"../thirdparty/RTOS" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/include" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/portable/GCC/ARM_CM0" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0/module_config" -I"../" -I"../config" -I"../usb" -I"../usb/class/cdc" -I"../usb/class/cdc/device" -I"../usb/device" -I"../" -I"../CMSIS/Include" -I"../samd21a/include"  \
--MD -MP -MF "$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -MT"$(@:%.o=%.o)"  -o "$@" "$<"
-	@echo Finished building: $<
+all: $(TARGET).hex
 
-%.o: %.S
-	@echo Building file: $<
-	@echo ARM/GNU Preprocessing Assembler
-	$(QUOTE)arm-none-eabi-gcc$(QUOTE) -x c -mthumb -DDEBUG -Os -ffunction-sections -mlong-calls -g3 -Wall -c -std=gnu99 \
--D__SAMD21G18A__ -mcpu=cortex-m0plus  \
--I"../" -I"../config" -I"../examples" -I"../hal/include" -I"../hal/utils/include" -I"../hpl/core" -I"../hpl/dmac" -I"../hpl/eic" -I"../hpl/gclk" -I"../hpl/pm" -I"../hpl/port" -I"../hpl/rtc" -I"../hpl/sercom" -I"../hpl/sysctrl" -I"../hpl/usb" -I"../hri" -I"../" -I"../config" -I"../thirdparty/RTOS" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/include" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/portable/GCC/ARM_CM0" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0/module_config" -I"../" -I"../config" -I"../usb" -I"../usb/class/cdc" -I"../usb/class/cdc/device" -I"../usb/device" -I"../" -I"../CMSIS/Include" -I"../samd21a/include"  \
--MD -MP -MF "$(@:%.o=%.d)" -MT"$(@:%.o=%.d)" -MT"$(@:%.o=%.o)"  -o "$@" "$<"
-	@echo Finished building: $<
+$(TARGET).elf: $(OBJS) $(MCU_LD)
+	arm-none-eabi-gcc -o $(TARGET).elf $(OBJS) $(LDFLAGS) 
 
-# Detect changes in the dependent files and recompile the respective object files.
-ifneq ($(MAKECMDGOALS),clean)
-ifneq ($(strip $(DEPS)),)
--include $(DEPS)
-endif
-endif
+%.hex: %.elf
+	$(SIZE) $<
+	arm-none-eabi-objcopy -O binary $(TARGET).elf $(TARGET).bin
+	arm-none-eabi-objcopy -O ihex -R .eeprom -R .fuse -R .lock -R .signature $(TARGET).elf $(TARGET).hex
+	arm-none-eabi-objcopy -j .eeprom --set-section-flags=.eeprom=alloc,load --change-section-lma .eeprom=0 --no-change-warnings -O binary $(TARGET).elf $(TARGET).eep || exit 0
+	arm-none-eabi-objdump -h -S $(TARGET).elf > $(TARGET).lss
+	arm-none-eabi-size $(TARGET).elf
 
-$(SUB_DIRS):
-	$(MK_DIR) "$@"
+-include $(OBJS:.o=.d)
 
 clean:
-	rm -f $(OBJS_AS_ARGS)
-	rm -f $(OUTPUT_FILE_PATH)
-	rm -f $(DEPS_AS_ARGS)
-	rm -f $(OUTPUT_FILE_NAME).a $(OUTPUT_FILE_NAME).hex $(OUTPUT_FILE_NAME).bin \
-        $(OUTPUT_FILE_NAME).lss $(OUTPUT_FILE_NAME).eep $(OUTPUT_FILE_NAME).map \
-        $(OUTPUT_FILE_NAME).srec
+	rm -f $(OBJS) *.o *.d $(TARGET).elf $(TARGET).hex
+
+flash: $(TARGET).hex
+	bossac -i  -U true --port=/dev/loraflash -e -w $(TARGET).bin -R
