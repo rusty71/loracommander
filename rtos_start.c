@@ -21,13 +21,24 @@ static SemaphoreHandle_t disp_mutex;
  */
 static void example_task(void *p)
 {
+    static bool toggle = false;
 	(void)p;
+    volatile TickType_t now;
 	while (1) {
-		if (xSemaphoreTake(disp_mutex, ~0)) {
-			/* add your code */
-			xSemaphoreGive(disp_mutex);
-		}
-		os_sleep(500);
+        /* add your code */
+        //~ if(toggle){
+            //~ toggle = false;
+            //~ gpio_set_pin_level(LED_YELLOW,true);
+        //~ }
+        //~ else {
+            //~ toggle = true;
+            //~ gpio_set_pin_level(LED_YELLOW,false);
+        //~ }
+        now = xTaskGetTickCount();
+        while((xTaskGetTickCount()<(now+10)))
+            ;
+        
+		os_sleep(200);
 	}
 }
 

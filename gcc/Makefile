@@ -90,4 +90,4 @@ clean:
 	rm -f $(OBJS) *.o *.d $(TARGET).elf $(TARGET).hex
 
 flash: $(TARGET).hex
-	bossac -i  -U true --port=/dev/loraflash -e -w $(TARGET).bin -R
+	/home/jeroen/.arduino15/packages/arduino/tools/bossac/1.7.0/bossac -i  -U true --port=/dev/loraflash -e -w $(TARGET).bin -R

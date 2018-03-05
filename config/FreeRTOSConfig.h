@@ -11,6 +11,9 @@
 void assert_triggered(const char *file, uint32_t line);
 #endif
 
+#define configPRE_SLEEP_PROCESSING( xExpectedIdleTime ) pre_sleep(xExpectedIdleTime);
+#define configPOST_SLEEP_PROCESSING( xExpectedIdleTime ) post_sleep(xExpectedIdleTime);
+
 #include <peripheral_clk_config.h>
 
 // <h> Basic

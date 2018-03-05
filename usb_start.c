@@ -110,8 +110,8 @@ void cdcd_acm_example(void)
 
 	cdcdf_acm_register_callback(CDCDF_ACM_CB_STATE_C, (FUNC_PTR)usb_device_cb_state_c);
 
-	while (1) {
-	}
+	//~ while (1) {
+	//~ }
 }
 
 void usb_init(void)
