@@ -11,6 +11,8 @@
 void assert_triggered(const char *file, uint32_t line);
 #endif
 
+extern void pre_sleep(uint32_t *time);
+extern void post_sleep(uint32_t *time);
 #define configPRE_SLEEP_PROCESSING( xExpectedIdleTime ) pre_sleep(xExpectedIdleTime);
 #define configPOST_SLEEP_PROCESSING( xExpectedIdleTime ) post_sleep(xExpectedIdleTime);
 
