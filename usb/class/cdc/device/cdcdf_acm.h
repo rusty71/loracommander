@@ -43,7 +43,10 @@
 #include "usb_protocol_cdc.h"
 
 /** CDC ACM Class Callback Type */
-enum cdcdf_acm_cb_type { CDCDF_ACM_CB_READ, CDCDF_ACM_CB_WRITE, CDCDF_ACM_CB_LINE_CODING_C, CDCDF_ACM_CB_STATE_C };
+enum cdcdf_acm_cb_type { CDCDF_ACM_CB_READ, CDCDF_ACM_CB_WRITE, CDCDF_ACM_CB_LINE_CODING_C, CDCDF_ACM_CB_STATE_C, CDCDF_ACM_CB_ENABLED_C };
+
+/** CDC ACM enabled callback. */
+typedef void (*cdcdf_acm_notify_enabled_t)(bool);
 
 /** CDC ACM Notify Line State Callback. */
 typedef void (*cdcdf_acm_notify_state_t)(uint16_t);

@@ -63,8 +63,9 @@ static struct usbdf_driver        _cdcdf_acm;
 static struct cdcdf_acm_func_data _cdcdf_acm_funcd;
 static struct usb_cdc_line_coding usbd_cdc_line_coding;
 
-static cdcdf_acm_notify_state_t    cdcdf_acm_notify_state    = NULL;
-static cdcdf_acm_set_line_coding_t cdcdf_acm_set_line_coding = NULL;
+static cdcdf_acm_notify_state_t    cdcdf_acm_notify_state     = NULL;
+static cdcdf_acm_set_line_coding_t cdcdf_acm_set_line_coding  = NULL;
+static cdcdf_acm_notify_enabled_t    cdcdf_acm_notify_enabled = NULL;
 
 /**
  * \brief Enable CDC ACM Function
@@ -125,6 +126,10 @@ static int32_t cdcdf_acm_enable(struct usbdf_driver *drv, struct usbd_descriptor
 	}
 	// Installed
 	_cdcdf_acm_funcd.enabled = true;
+    if (NULL != cdcdf_acm_notify_enabled) {
+        cdcdf_acm_notify_enabled(true);
+    }
+
 	return ERR_NONE;
 }
 
@@ -167,6 +172,9 @@ static int32_t cdcdf_acm_disable(struct usbdf_driver *drv, struct usbd_descripto
 	}
 
 	_cdcdf_acm_funcd.enabled = false;
+    if (NULL != cdcdf_acm_notify_enabled) {
+        cdcdf_acm_notify_enabled(false);
+    }
 	return ERR_NONE;
 }
 
@@ -277,9 +285,20 @@ static int32_t cdcdf_acm_req(uint8_t ep, struct usb_req *req, enum usb_ctrl_stag
 		return ERR_NOT_FOUND;
 	}
 }
+/**
+ * \brief Process the CDC class change
+ * \param[in] ep Endpoint address.
+ * \param[in] req Pointer to the request.
+ * \return Operation status.
+ */
+static void cdcdf_acm_change(enum usbdc_change_type change, uint32_t value)
+{
+//Doesnt pickup unplugging USB cable?
+}
 
 /** USB Device CDC ACM Handler Struct */
 static struct usbdc_handler cdcdf_acm_req_h = {NULL, (FUNC_PTR)cdcdf_acm_req};
+static struct usbdc_handler cdcdf_acm_change_h = {NULL, (FUNC_PTR)cdcdf_acm_change};
 
 /**
  * \brief Initialize the USB CDC ACM Function Driver
@@ -295,6 +314,7 @@ int32_t cdcdf_acm_init(void)
 
 	usbdc_register_function(&_cdcdf_acm);
 	usbdc_register_handler(USBDC_HDL_REQ, &cdcdf_acm_req_h);
+	usbdc_register_handler(USBDC_HDL_CHANGE, &cdcdf_acm_change_h);
 	return ERR_NONE;
 }
 
@@ -358,6 +378,8 @@ int32_t cdcdf_acm_register_callback(enum cdcdf_acm_cb_type cb_type, FUNC_PTR fun
 	case CDCDF_ACM_CB_STATE_C:
 		cdcdf_acm_notify_state = (cdcdf_acm_notify_state_t)func;
 		break;
+    case CDCDF_ACM_CB_ENABLED_C:
+        cdcdf_acm_notify_enabled = (cdcdf_acm_notify_enabled_t)func;
 	default:
 		return ERR_INVALID_ARG;
 	}
