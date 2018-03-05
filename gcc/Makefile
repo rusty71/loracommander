@@ -22,7 +22,11 @@ SIZE = arm-none-eabi-size
 PROJECT_OBJS = $(SRC_ROOT)main.o \
 				$(SRC_ROOT)uart.o \
 				$(SRC_ROOT)cdc_drv.o \
-				$(SRC_ROOT)assert.o
+				$(SRC_ROOT)assert.o \
+				$(SRC_ROOT)sx1276.o \
+				$(SRC_ROOT)sx1276-board.o \
+				$(SRC_ROOT)radio_drv.o \
+				$(SRC_ROOT)l2console.o
 				
 
 ASF4_OBJS = $(SRC_ROOT)hal/src/hal_io.o \
@@ -73,10 +77,14 @@ ASF4_OBJS = $(SRC_ROOT)hal/src/hal_io.o \
 #~ OBJS := $(C_FILES:.c=.o) $(CPP_FILES:.cpp=.o)
 OBJS := $(ASF4_OBJS) $(PROJECT_OBJS)
 
+#~ DEPS := $(OBJS:.o=.d)
+
+#~ -include $(DEPS)
+    
 all: $(TARGET).hex
 
 $(TARGET).elf: $(OBJS) $(MCU_LD)
-	arm-none-eabi-gcc -o $(TARGET).elf $(OBJS) $(LDFLAGS) 
+	arm-none-eabi-gcc -o $(TARGET).elf $(OBJS) $(LDFLAGS)
 
 %.hex: %.elf
 	$(SIZE) $<
