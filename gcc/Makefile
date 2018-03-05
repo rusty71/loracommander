@@ -20,7 +20,7 @@ SIZE = arm-none-eabi-size
 
 #~ PROJECT_FILES := $(wildcard *.c)
 
-PROJECT_OBJS = $(SRC_ROOT)main.o
+PROJECT_OBJS = $(SRC_ROOT)main.o	#~tickless.o
 
 ASF4_OBJS = $(SRC_ROOT)hal/src/hal_io.o \
 			$(SRC_ROOT)thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/list.o \
@@ -88,6 +88,7 @@ $(TARGET).elf: $(OBJS) $(MCU_LD)
 
 clean:
 	rm -f $(OBJS) *.o *.d $(TARGET).elf $(TARGET).hex
+	rm -f $(TARGET).*
 
 flash: $(TARGET).hex
 	/home/jeroen/.arduino15/packages/arduino/tools/bossac/1.7.0/bossac -i  -U true --port=/dev/loraflash -e -w $(TARGET).bin -R
