@@ -23,8 +23,6 @@ int main(void)
 
     ASSERT(true);
     
-    cdc_init();
-    radio_init();
     start_l2console();
 
 	vTaskStartScheduler();
