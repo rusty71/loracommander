@@ -12,19 +12,20 @@
 #include <string.h>
 //~ #include <math.h>
 
+//Lorawan on 868.10, 868.30  868.50 @125kHz(EU)
 //defaults
-#define RF_FREQUENCY                                868000000 // Hz
+#define RF_FREQUENCY                                868300000 // Hz
 #define TX_OUTPUT_POWER                             0         // dBm
-#define LORA_BANDWIDTH                              9         // [7: 125 kHz,
+#define LORA_BANDWIDTH                              7         // [7: 125 kHz,
                                                               //  8: 250 kHz,
                                                               //  9: 500 kHz,
                                                               //  10: Reserved]
-#define LORA_SPREADING_FACTOR                       12         // [SF7..SF12]
-#define LORA_CODINGRATE                             4         // [1: 4/5,
+#define LORA_SPREADING_FACTOR                       7         // [SF7..SF12]
+#define LORA_CODINGRATE                             2         // [1: 4/5,
                                                               //  2: 4/6,
                                                               //  3: 4/7,
                                                               //  4: 4/8]
-#define LORA_PREAMBLE_LENGTH                        32         // Same for Tx and Rx
+#define LORA_PREAMBLE_LENGTH                        8         // Same for Tx and Rx
 #define LORA_SYMBOL_TIMEOUT                         15         // Symbols
 #define LORA_FIX_LENGTH_PAYLOAD_ON                  false
 #define LORA_IQ_INVERSION_ON                        false
@@ -102,6 +103,7 @@ void OnRxTimeout( void )    //ISR
     rxnotify.pvData = NULL;
     rxnotify.Len = 0;
 
+    DEBUG_PRINT("on timeout");
     Radio.Standby( );
     xQueueSendFromISR( rxEventQ, &rxnotify, NULL );
 }
@@ -187,6 +189,7 @@ uint16_t radio_write(uint8_t *data, uint16_t len){
                 DEBUG_PRINT("SENT");
             }
             else if (xReceivedStructure.eType == TXQ_TIMEOUT ) {
+                DEBUG_PRINT("SENT timeout");
             }
         
         }
@@ -289,6 +292,17 @@ void radio_rxconfig(RadioLoRaSettings_t *settings) {
     else
         configASSERT(false);
                                     
+}
+
+void radio_status(char * buffer) {
+    if( xSemaphoreTake( RadioSem, portMAX_DELAY ) == pdTRUE ) {
+        Radio.GetStatus(buffer);
+        xSemaphoreGive( RadioSem );       //give back radio control
+    }
+    else {
+        configASSERT(false);
+    }
+
 }
 
 void radio_init(void)
