@@ -160,7 +160,7 @@ void SX1276Init( RadioEvents_t *events );
  *
  * \param status Radio status.[RF_IDLE, RF_RX_RUNNING, RF_TX_RUNNING]
  */
-RadioState_t SX1276GetStatus( void );
+void SX1276GetStatus( char * status_str );
 
 /*!
  * \brief Configures the radio with the given modem

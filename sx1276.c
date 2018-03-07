@@ -16,6 +16,7 @@ Maintainer: Miguel Luis, Gregory Cristian and Wael Guibene
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include "FreeRTOS.h"
 #include "timers.h"
 #include "driver_init.h"
@@ -305,11 +306,11 @@ void TimerSetValue(TimerType_t timer, uint32_t timeout ) {
 void led_cb(const struct timer_task *const timer_task){
 static bool toggle = false;
     if(toggle) {
-        gpio_set_pin_level(LED_YELLOW, true);
+        //~ gpio_set_pin_level(LED_YELLOW, true);
         toggle = false;
     }
     else {
-        gpio_set_pin_level(LED_YELLOW, false);
+        //~ gpio_set_pin_level(LED_YELLOW, false);
         toggle = true;
     }
     
@@ -362,7 +363,7 @@ void SX1276Init( RadioEvents_t *events )
 	ledblink.cb       = led_cb;
 	ledblink.mode     = TIMER_TASK_REPEAT;
 
-    timer_add_task(&TIMER, &ledblink);
+    //~ timer_add_task(&TIMER, &ledblink);
     timer_start(&TIMER);    //no task added yet
 
     SX1276Reset( );
@@ -390,9 +391,19 @@ void SX1276Init( RadioEvents_t *events )
     SX1276.Settings.State = RF_IDLE;
 }
 
-RadioState_t SX1276GetStatus( void )
+void SX1276GetStatus( char *buffer )
 {
-    return SX1276.Settings.State;
+    volatile    uint32_t freq;
+
+    freq = ((uint32_t)SX1276Read( REG_FRFMSB ))&0x000000ff;
+    freq = (freq << 8) | (((uint32_t)SX1276Read(REG_FRFMID))&0x000000ff);
+    freq = (freq << 8) | (((uint32_t)SX1276Read(REG_FRFLSB))&0x000000ff);
+    freq = freq * FREQ_STEP;
+    freq = (freq+500)/1000;    //round to kHz
+
+    sprintf(buffer, "%u", freq);
+    
+    return;
 }
 
 void SX1276SetChannel( uint32_t freq )
@@ -1598,7 +1609,7 @@ void SX1276OnTimeoutIrq(const struct timer_task *const timer_task)
         if( ( RadioEvents != NULL ) && ( RadioEvents->RxTimeout != NULL ) )
         {
             RadioEvents->RxTimeout( );
-            //~ UART_println("TimeoutIrq(),RX event");
+            DEBUG_PRINT("TimeoutIrq(),RX event");
         }
         break;
     case RF_TX_RUNNING:
@@ -1865,6 +1876,7 @@ void SX1276OnDio1Irq( void )
                 SX1276.Settings.State = RF_IDLE;
                 if( ( RadioEvents != NULL ) && ( RadioEvents->RxTimeout != NULL ) )
                 {
+                    DEBUG_PRINT("TimeoutIrq(2),RX event");
                     RadioEvents->RxTimeout( );
                 }
                 break;
