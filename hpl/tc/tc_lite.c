@@ -62,10 +62,9 @@ int8_t HWTIMER_init()
 	                           | 0 << TC_CTRLA_WAVEGEN_Pos   /* Waveform Generation Operation: 0 */
 	                           | 0x2 << TC_CTRLA_MODE_Pos);  /* Operating Mode: 0x2 */
 
-	hri_tc_write_CTRLB_reg(TC3,
-	                       0 << TC_CTRLBSET_CMD_Pos           /* Command: 0 */
-	                           | 1 << TC_CTRLBSET_ONESHOT_Pos /* One-Shot: enabled */
-	                           | 0 << TC_CTRLBSET_DIR_Pos);   /* Counter Direction: disabled */
+	// hri_tc_write_CTRLB_reg(TC3,0 << TC_CTRLBSET_CMD_Pos /* Command: 0 */
+	//		 | 0 << TC_CTRLBSET_ONESHOT_Pos /* One-Shot: disabled */
+	//		 | 0 << TC_CTRLBSET_DIR_Pos); /* Counter Direction: disabled */
 
 	// hri_tc_write_CTRLC_reg(TC3,0 << TC_CTRLC_CPTEN1_Pos /* Capture Channel 1 Enable: disabled */
 	//		 | 0 << TC_CTRLC_CPTEN0_Pos); /* Capture Channel 0 Enable: disabled */
@@ -76,11 +75,11 @@ int8_t HWTIMER_init()
 
 	// hri_tc_write_DBGCTRL_reg(TC3,0); /* Run in debug: 0 */
 
-	hri_tccount32_write_CC_reg(TC3, 0, 0x800); /* Compare/Capture Value: 0x800 */
+	hri_tccount16_write_CC_reg(TC3, 0, 0x800); /* Compare/Capture Value: 0x800 */
 
-	// hri_tccount32_write_CC_reg(TC3, 1 ,0x0); /* Compare/Capture Value: 0x0 */
+	// hri_tccount16_write_CC_reg(TC3, 1 ,0x0); /* Compare/Capture Value: 0x0 */
 
-	// hri_tccount32_write_COUNT_reg(TC3,0x0); /* Counter Value: 0x0 */
+	// hri_tccount16_write_COUNT_reg(TC3,0x0); /* Counter Value: 0x0 */
 
 	// hri_tc_write_EVCTRL_reg(TC3,0 << TC_EVCTRL_MCEO0_Pos /* Match or Capture Channel 0 Event Output Enable: disabled
 	// */

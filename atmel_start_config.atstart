@@ -457,14 +457,14 @@ drivers:
           rtc_clk_selection: Generic clock generator 1
   HWTIMER:
     user_label: HWTIMER
-    definition: Atmel:SAMD21_Drivers:0.0.1::SAMD21G18A-AF::TC3::driver_config_definition::32-bit.Counter.Mode::Lite:TC:Timer
+    definition: Atmel:SAMD21_Drivers:0.0.1::SAMD21G18A-AF::TC3::driver_config_definition::16-bit.Counter.Mode::Lite:TC:Timer
     functionality: Timer
     api: Lite:TC:Timer
     configuration:
       cc_cc0: 2048
       cc_cc1: 0
       cc_control: true
-      count_control: true
+      count_control: false
       count_count: 0
       ctrla_control: true
       ctrla_enable: true
@@ -474,15 +474,15 @@ drivers:
       ctrla_runstdby: true
       ctrla_wavegen: NFRQ
       ctrlbset_cmd: NONE
-      ctrlbset_control: true
+      ctrlbset_control: false
       ctrlbset_dir: false
-      ctrlbset_oneshot: true
-      ctrlc_control: true
+      ctrlbset_oneshot: false
+      ctrlc_control: false
       ctrlc_cpten0: false
       ctrlc_cpten1: false
       dbgctrl_control: true
       dbgctrl_dbgrun: false
-      evctrl_control: true
+      evctrl_control: false
       evctrl_evact: 'OFF'
       evctrl_mceo0: false
       evctrl_mceo1: false
@@ -496,7 +496,7 @@ drivers:
       intenset_ovf: false
       intenset_syncrdy: false
       readreq_addr: 0
-      readreq_control: true
+      readreq_control: false
       readreq_rcont: false
       readreq_rreq: false
     optional_signals: []
