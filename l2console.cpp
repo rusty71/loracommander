@@ -241,7 +241,7 @@ class VT100 {
         uint8_t idx;
         char printbuf[20];
 
-        while (!cdc_read(&ch, 1, portMAX_DELAY))        //might return 0 len if interrupted
+        while (!cdc_read(&ch, 1, portMAX_DELAY)) 
             ;
 
         if (ch == 0x7F)         // BACKSPACE on VT200 sends DEL char
@@ -291,19 +291,6 @@ class VT100 {
         return ch;
     }
 
-    //~ int getch( )
-    //~ {
-    //~ uint8_t tmp[2];
-    //~ char buf[20];
-
-    //~ while(!cdc_read(tmp, 1, portMAX_DELAY))
-    //~ ;
-
-    //~ sprintf(buf, "[%02X]", tmp[0]);
-    //~ UART_print(buf);
-    //~ return (int)tmp[0];
-    //~ }
-
     /** Write a char to the serial port
      *
      * @param c The char to write
@@ -315,8 +302,6 @@ class VT100 {
             return -1;
         return 1;
     }
-
-
 
     /** Write a string to the serial port
      *
@@ -444,12 +429,17 @@ class mainWin {
     }
 
     void print_status(void) {
+        uint8_t restorex, restorey;
         int status_row = rows - 1;
 
+        vt100.GetCursorPos(&restorey, &restorex);
         vt100.SetAttribute(VT100::ATTR_OFF, VT100::WHITE, VT100::BLUE);
-        vt100.SetCursorPos(status_row, 0);
+        vt100.SetCursorPos(status_row, 10);
         vt100.printf("Status Line");
+        //~ radio_status(status_buffer);
+        //~ vt100.printf(status_buffer);
         vt100.SetAttribute(VT100::ATTR_OFF, VT100::WHITE, VT100::BLACK);
+        vt100.SetCursorPos(restorey, restorex);
     }
 
     uint16_t readline(char *str, int line, int column, int len) {
@@ -548,30 +538,34 @@ class mainWin {
         if(!strncmp("/echo", command, command-arg)){
             if(echo) {
                 echo=false;
-                add_message_row("echo OFF", MSG_TYPE_NOTIFY);
+                add_message_row((char *)"echo OFF", MSG_TYPE_NOTIFY);
             }
             else {
                 echo=true;
-                add_message_row("echo ON", MSG_TYPE_NOTIFY);
+                add_message_row((char *)"echo ON", MSG_TYPE_NOTIFY);
             }
         }
         else if(!strncmp("/ping", command, command-arg)){
             if(eTaskGetState(xPingTask) == eSuspended) {
                 vTaskResume(xPingTask);
-                add_message_row("ping ON", MSG_TYPE_NOTIFY);
+                add_message_row((char *)"ping ON", MSG_TYPE_NOTIFY);
             }
             else {
                 vTaskSuspend(xPingTask);
-                add_message_row("ping OFF", MSG_TYPE_NOTIFY);
+                add_message_row((char *)"ping OFF", MSG_TYPE_NOTIFY);
             }
         }
-        else {
-            add_message_row("command not found", MSG_TYPE_ERROR);
+        else if(!strncmp("/status", command, command-arg)){
+            print_status();
         }
+        else {
+            add_message_row((char *)"command not found", MSG_TYPE_ERROR);
+        }
+        return true;
     }
     
     void cli(void) {
-        portBASE_TYPE xReturned;
+        //~ portBASE_TYPE xReturned;
         char outbuf[MAX_COLS];
         int cli_row = rows;
         vt100.SetCursorPos(cli_row, 0);
@@ -584,7 +578,6 @@ class mainWin {
                 if (cli_buf[0] == '/') {
                     //~ add_message_row(outbuf, MSG_TYPE_COMMAND);
                     cli_command(cli_buf, outbuf);
-
                 }
                 else {
                     add_message_row(cli_buf, MSG_TYPE_SENT);
@@ -647,6 +640,8 @@ class mainWin {
   private:
     TaskHandle_t xRecvTask = NULL, xPingTask = NULL; 
     char cli_buf[MAX_COLS];
+    char status_buffer[MAX_COLS];
+
     int rows, columns;
     int msg_idx = 1;
     VT100 vt100;
@@ -701,10 +696,13 @@ void l2console_task(void *p)
     (void) p;
     int columns = 42, rows = 18;
 
+    cdc_init();
+    radio_init();
+
     cdc_wait_CDC();
     cdc_wait_DTR();
     
-mainWin win(18, 42);
+mainWin win(rows, columns);
 
     vTaskDelay(300);
     //~ vRegisterCLICommands();
