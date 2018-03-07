@@ -152,6 +152,12 @@ static void TIMER_init(void)
 	timer_init(&TIMER, RTC, _rtc_get_timer());
 }
 
+void HWTIMER_CLOCK_init(void)
+{
+	_pm_enable_bus_clock(PM_BUS_APBC, TC3);
+	_gclk_enable_channel(TC3_GCLK_ID, CONF_GCLK_TC3_SRC);
+}
+
 void USB_DEVICE_INSTANCE_PORT_init(void)
 {
 
@@ -322,6 +328,10 @@ void system_init(void)
 	SPI_init();
 
 	TIMER_init();
+
+	HWTIMER_CLOCK_init();
+
+	HWTIMER_init();
 
 	USB_DEVICE_INSTANCE_init();
 }
