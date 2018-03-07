@@ -12,7 +12,7 @@ extern "C" {
 void radio_init(void);
 uint16_t radio_read(uint8_t *data, uint16_t maxlen, int16_t *rssi, int8_t *snr, uint32_t timeout);
 uint16_t radio_write(uint8_t *data, uint16_t len);  //tx timeout in modem settings
-
+void radio_status(char * buffer);
 
 #ifdef __cplusplus
 }
