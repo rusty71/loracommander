@@ -1,7 +1,7 @@
 SRC_ROOT=../
 TARGET = loracommander
 
-INCLUDES = -I"../" -I"../config" -I"../examples" -I"../hal/include" -I"../hal/utils/include" -I"../hpl/core" -I"../hpl/dmac" -I"../hpl/eic" -I"../hpl/gclk" -I"../hpl/pm" -I"../hpl/port" -I"../hpl/rtc" -I"../hpl/sercom" -I"../hpl/sysctrl" -I"../hpl/usb" -I"../hri" -I"../" -I"../config" -I"../thirdparty/RTOS" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/include" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/portable/GCC/ARM_CM0" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0/module_config" -I"../" -I"../config" -I"../usb" -I"../usb/class/cdc" -I"../usb/class/cdc/device" -I"../usb/device" -I"../" -I"../CMSIS/Include" -I"../samd21a/include"
+INCLUDES = -I"../" -I"../config" -I"../examples" -I"../hal/include" -I"../hal/utils/include" -I"../hpl/core" -I"../hpl/tc" -I"../hpl/dmac" -I"../hpl/eic" -I"../hpl/gclk" -I"../hpl/pm" -I"../hpl/port" -I"../hpl/rtc" -I"../hpl/sercom" -I"../hpl/sysctrl" -I"../hpl/usb" -I"../hri" -I"../" -I"../config" -I"../thirdparty/RTOS" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/include" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/portable/GCC/ARM_CM0" -I"../thirdparty/RTOS/freertos/FreeRTOSV10.0.0/module_config" -I"../" -I"../config" -I"../usb" -I"../usb/class/cdc" -I"../usb/class/cdc/device" -I"../usb/device" -I"../" -I"../CMSIS/Include" -I"../samd21a/include"
 #~ CPPFLAGS = -x c -mthumb -DDEBUG -Os -ffunction-sections -mlong-calls -g3 -Wall -c -std=gnu99 -D__SAMD21G18A__ -mcpu=cortex-m0plus $(INCLUDES)
 CPPFLAGS = -mthumb -DDEBUG -Os -ffunction-sections -mlong-calls -g3 -Wall -D__SAMD21G18A__ -mcpu=cortex-m0plus $(INCLUDES)
 #~ -std=c99, -std=gnu99, -std=c11 or -std=gnu11
@@ -29,7 +29,8 @@ PROJECT_OBJS = $(SRC_ROOT)main.o \
 				$(SRC_ROOT)l2console.o
 				
 
-ASF4_OBJS = $(SRC_ROOT)hal/src/hal_io.o \
+ASF4_OBJS = $(SRC_ROOT)hpl/tc/tc_lite.o \
+			$(SRC_ROOT)hal/src/hal_io.o \
 			$(SRC_ROOT)thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/list.o \
 			$(SRC_ROOT)thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/portable/MemMang/heap_1.o \
 			$(SRC_ROOT)thirdparty/RTOS/freertos/FreeRTOSV10.0.0/Source/event_groups.o \
