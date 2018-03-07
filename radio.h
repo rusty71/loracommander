@@ -101,7 +101,7 @@ struct Radio_s
      *
      * \param status Radio status.[RF_IDLE, RF_RX_RUNNING, RF_TX_RUNNING]
      */
-    RadioState_t ( *GetStatus )( void );
+    void ( *GetStatus )( char * status );
     /*!
      * \brief Configures the radio with the given modem
      *
