@@ -59,7 +59,7 @@ int8_t HWTIMER_init()
 	                       0 << TC_CTRLA_PRESCSYNC_Pos       /* Prescaler and Counter Synchronization: 0 */
 	                           | 1 << TC_CTRLA_RUNSTDBY_Pos  /* Run in Standby: enabled */
 	                           | 4 << TC_CTRLA_PRESCALER_Pos /* Setting: 4 */
-	                           | 0 << TC_CTRLA_WAVEGEN_Pos   /* Waveform Generation Operation: 0 */
+	                           | 1 << TC_CTRLA_WAVEGEN_Pos   /* Waveform Generation Operation: 0 */
 	                           | 0x2 << TC_CTRLA_MODE_Pos);  /* Operating Mode: 0x2 */
 
 	// hri_tc_write_CTRLB_reg(TC3,0 << TC_CTRLBSET_CMD_Pos /* Command: 0 */
@@ -75,7 +75,7 @@ int8_t HWTIMER_init()
 
 	// hri_tc_write_DBGCTRL_reg(TC3,0); /* Run in debug: 0 */
 
-	hri_tccount16_write_CC_reg(TC3, 0, 0x800); /* Compare/Capture Value: 0x800 */
+	hri_tccount16_write_CC_reg(TC3, 0, 1024); /* Compare/Capture Value: 0x800 */
 
 	// hri_tccount16_write_CC_reg(TC3, 1 ,0x0); /* Compare/Capture Value: 0x0 */
 
@@ -98,5 +98,6 @@ int8_t HWTIMER_init()
 
 	hri_tc_write_CTRLA_ENABLE_bit(TC3, 1 << TC_CTRLA_ENABLE_Pos); /* Enable: enabled */
 
+    NVIC_EnableIRQ(TC3_IRQn);
 	return 0;
 }
