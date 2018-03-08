@@ -363,7 +363,7 @@ void SX1276Init( RadioEvents_t *events )
 	ledblink.cb       = led_cb;
 	ledblink.mode     = TIMER_TASK_REPEAT;
 
-    //~ timer_add_task(&TIMER, &ledblink);
+    timer_add_task(&TIMER, &ledblink);
     timer_start(&TIMER);    //no task added yet
 
     SX1276Reset( );
