@@ -14,6 +14,36 @@ void pre_sleep(TickType_t *time) {
 void post_sleep(TickType_t *time) {
     gpio_set_pin_level(LED_YELLOW,true);
 }
+
+void TC3_Handler(void){
+    static bool toggle = true;
+    
+    if(toggle){
+        toggle = false;
+        gpio_set_pin_level(LED_YELLOW,true);
+    }
+    else {
+        toggle = true;
+        gpio_set_pin_level(LED_YELLOW,false);
+    }
+    hri_tc_clear_INTFLAG_MC0_bit(TC3);
+
+    //~ hri_tccount32_write_CC_reg(TC3, 1 ,0x0); /* Compare/Capture Value: 0x0 */
+
+    //~ NVIC_ClearPendingIRQ(TC3_IRQn);
+    //~ hri_tc_clear_INTEN_MC0_bit(TC3);
+    //~ hri_tc_write_CTRLA_ENABLE_bit(TC3, 1 << TC_CTRLA_ENABLE_Pos); /* Enable: enabled */
+	//~ hri_tc_write_INTEN_reg(TC3,
+	                       //~ 1 << TC_INTENSET_MC0_Pos       /* Match or Capture Channel 0 Interrupt Enable: enabled */
+	                           //~ | 0 << TC_INTENSET_MC1_Pos /* Match or Capture Channel 1 Interrupt Enable: disabled */
+	                           //~ | 0 << TC_INTENSET_SYNCRDY_Pos /* Synchronization Ready Interrupt Enable: disabled */
+	                           //~ | 0 << TC_INTENSET_ERR_Pos     /* Error Interrupt Enable: disabled */
+	                           //~ | 0 << TC_INTENSET_OVF_Pos);   /* Overflow Interrupt enable: disabled */
+
+
+    
+}
+
 }
 
 int main(void)
@@ -21,6 +51,11 @@ int main(void)
 	/* Initializes MCU, drivers and middleware */
     system_init();
 
+
+    //~ HWTIMER_init();
+    
+    while(1)
+        ;
     ASSERT(true);
     
     start_l2console();
