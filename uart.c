@@ -25,7 +25,7 @@ void UART_println(char *str) {
 void UART_printInt(int data) {
     char intbuf[10];
     
-    itoa(data, intbuf, 16);
+    itoa(data, intbuf, 10);
     UART_print(intbuf);
 }
 
