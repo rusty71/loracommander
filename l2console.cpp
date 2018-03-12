@@ -10,7 +10,7 @@
 //~ #include "vt100.h"
 
 //~ #include <stdint.h>
-#include <stdio.h>
+//~ #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -23,7 +23,7 @@
 TaskHandle_t xRadioRecvTask = NULL;
 
 
-#define PING_TASK_STACK_SIZE (1024 / sizeof(portSTACK_TYPE))
+#define PING_TASK_STACK_SIZE (512 / sizeof(portSTACK_TYPE))
 #define PING_TASK_PRIORITY (tskIDLE_PRIORITY + 1)
 
 static TaskHandle_t xL2ConsoleTask;
@@ -195,6 +195,7 @@ class VT100 {
 
     void PutStringAt(uint8_t line, uint8_t col, const char *s) {
         this->SetCursorPos(line, col);
+        DEBUG_PRINT(s);
         this->printf("%s", s);
     }
 
@@ -286,7 +287,7 @@ class VT100 {
             }
         }
         sprintf(printbuf, "[%02X]", ch);
-        UART_print(printbuf);
+        DEBUG_PRINT(printbuf);
 
         return ch;
     }
@@ -315,27 +316,192 @@ class VT100 {
         return 0;
     }
 
-    int printf(const char *format, ...) {
-        va_list arg;
-        va_start(arg, format);
-        int len = vsnprintf(NULL, 0, format, arg);
-        if (len < STRING_STACK_LIMIT) {
-            char temp[STRING_STACK_LIMIT];
-            vsprintf(temp, format, arg);
-            puts(temp);
+    void printchar(char **str, int c)
+    {
+        //extern int putchar(int c);
+        
+        if (str) {
+            **str = (char)c;
+            ++(*str);
         }
-        else {
-            configASSERT(false);        //CHECKME
-            char *temp = new char[len + 1];
-            vsprintf(temp, format, arg);
-            puts(temp);
-            delete[]temp;
+        else
+        { 
+            (void)putch(c);
         }
-        va_end(arg);
-        return len;
     }
 
+    #define PAD_RIGHT 1
+    #define PAD_ZERO 2
+
+    int prints(char **out, const char *string, int width, int pad)
+    {
+        register int pc = 0, padchar = ' ';
+
+        if (width > 0) {
+            register int len = 0;
+            register const char *ptr;
+            for (ptr = string; *ptr; ++ptr) ++len;
+            if (len >= width) width = 0;
+            else width -= len;
+            if (pad & PAD_ZERO) padchar = '0';
+        }
+        if (!(pad & PAD_RIGHT)) {
+            for ( ; width > 0; --width) {
+                printchar (out, padchar);
+                ++pc;
+            }
+        }
+        for ( ; *string ; ++string) {
+            printchar (out, *string);
+            ++pc;
+        }
+        for ( ; width > 0; --width) {
+            printchar (out, padchar);
+            ++pc;
+        }
+
+        return pc;
+    }
+
+    /* the following should be enough for 32 bit int */
+    #define PRINT_BUF_LEN 12
+
+    int printi(char **out, int i, int b, int sg, int width, int pad, int letbase)
+    {
+        char print_buf[PRINT_BUF_LEN];
+        register char *s;
+        register int t, neg = 0, pc = 0;
+        register unsigned int u = (unsigned int)i;
+
+        if (i == 0) {
+            print_buf[0] = '0';
+            print_buf[1] = '\0';
+            return prints (out, print_buf, width, pad);
+        }
+
+        if (sg && b == 10 && i < 0) {
+            neg = 1;
+            u = (unsigned int)-i;
+        }
+
+        s = print_buf + PRINT_BUF_LEN-1;
+        *s = '\0';
+
+        while (u) {
+            t = (unsigned int)u % b;
+            if( t >= 10 )
+                t += letbase - '0' - 10;
+            *--s = (char)(t + '0');
+            u /= b;
+        }
+
+        if (neg) {
+            if( width && (pad & PAD_ZERO) ) {
+                printchar (out, '-');
+                ++pc;
+                --width;
+            }
+            else {
+                *--s = '-';
+            }
+        }
+
+        return pc + prints (out, s, width, pad);
+    }
+
+    int print( char **out, const char *format, va_list args )
+    {
+        register int width, pad;
+        register int pc = 0;
+        char scr[2];
+
+        for (; *format != 0; ++format) {
+            if (*format == '%') {
+                ++format;
+                width = pad = 0;
+                if (*format == '\0') break;
+                if (*format == '%') goto out;
+                if (*format == '-') {
+                    ++format;
+                    pad = PAD_RIGHT;
+                }
+                while (*format == '0') {
+                    ++format;
+                    pad |= PAD_ZERO;
+                }
+                for ( ; *format >= '0' && *format <= '9'; ++format) {
+                    width *= 10;
+                    width += *format - '0';
+                }
+                if( *format == 's' ) {
+                    register char *s = (char *)va_arg( args, int );
+                    pc += prints (out, s?s:"(null)", width, pad);
+                    continue;
+                }
+                if( *format == 'd' ) {
+                    pc += printi (out, va_arg( args, int ), 10, 1, width, pad, 'a');
+                    continue;
+                }
+                if( *format == 'x' ) {
+                    pc += printi (out, va_arg( args, int ), 16, 0, width, pad, 'a');
+                    continue;
+                }
+                if( *format == 'X' ) {
+                    pc += printi (out, va_arg( args, int ), 16, 0, width, pad, 'A');
+                    continue;
+                }
+                if( *format == 'u' ) {
+                    pc += printi (out, va_arg( args, int ), 10, 0, width, pad, 'a');
+                    continue;
+                }
+                if( *format == 'c' ) {
+                    /* char are converted to int then pushed on the stack */
+                    scr[0] = (char)va_arg( args, int );
+                    scr[1] = '\0';
+                    pc += prints (out, scr, width, pad);
+                    continue;
+                }
+            }
+            else {
+            out:
+                printchar (out, *format);
+                ++pc;
+            }
+        }
+        if (out) **out = '\0';
+        va_end( args );
+        return pc;
+    }
+
+    int printf(const char *format, ...)
+    {
+        va_list args;
+        
+        va_start( args, format );
+        return print( 0, format, args );
+    }
+
+    int sprintf(char *out, const char *format, ...)
+    {
+        va_list args;
+        
+        va_start( args, format );
+        return print( &out, format, args );
+    }
+
+
+    //~ int snprintf( char *buf, unsigned int count, const char *format, ... )
+    //~ {
+        //~ va_list args;
+        
+        //~ ( void ) count;
+        
+        //~ va_start( args, format );
+        //~ return print( &buf, format, args );
+    //~ }
+
   private:
+    char temp[STRING_STACK_LIMIT];
     int x = 0, y = 0;
 };
 
@@ -354,7 +520,7 @@ extern "C" { void ping_task_wrapper(void*); };
     
 class mainWin {
     #define MAX_COLS 80
-    #define RECV_TASK_STACK_SIZE (512 / sizeof(portSTACK_TYPE))
+    #define RECV_TASK_STACK_SIZE (1024 / sizeof(portSTACK_TYPE))
     #define RECV_TASK_PRIORITY (tskIDLE_PRIORITY + 1)
 
   public:
@@ -593,7 +759,7 @@ class mainWin {
     void recv_task(void *p) {
         int len;
         mainWin *thetask = (mainWin *) p;
-        static uint8_t buffer[100];
+        uint8_t buffer[100];
         int16_t rssi;
         int8_t snr;
 
@@ -602,7 +768,8 @@ class mainWin {
                 DEBUG_PRINT("recv...");
                 if (strlen((char *) buffer)) {
                     buffer[len] = 0;    //terminate
-                    thetask->add_message_row((char *) buffer, MSG_TYPE_RECV);
+                    //~ thetask->add_message_row((char *) buffer, MSG_TYPE_RECV);
+                    add_message_row((char *) buffer, MSG_TYPE_RECV);
                     if(thetask->echo)
                         radio_write(buffer, len);
                 }
@@ -627,13 +794,13 @@ class mainWin {
             else {
                 DEBUG_PRINT("ping fail");
             }
-            vTaskDelay(3000);
+            vTaskDelay(300);
         }
     }
 
     void run(void) {
         vt100.ClearScreen(2);
-        print_status();
+        //~ print_status();
         cli();
     }
 
@@ -709,6 +876,6 @@ mainWin win(rows, columns);
 
     win.init();
 
-    win.printgrid();
+    //~ win.printgrid();
     win.run();
 }

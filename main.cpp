@@ -52,7 +52,7 @@ int main(void)
     system_init();
 
 
-    //~ HWTIMER_init();
+    HWTIMER_init();
     
     while(1)
         ;
