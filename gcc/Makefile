@@ -23,8 +23,6 @@ PROJECT_OBJS = $(SRC_ROOT)main.o \
 				$(SRC_ROOT)uart.o \
 				$(SRC_ROOT)cdc_drv.o \
 				$(SRC_ROOT)assert.o \
-				$(SRC_ROOT)sx1276.o \
-				$(SRC_ROOT)sx1276-board.o \
 				$(SRC_ROOT)radio_drv.o \
 				$(SRC_ROOT)l2console.o
 				

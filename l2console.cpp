@@ -766,18 +766,12 @@ class mainWin {
         while (1) {
             if ((len = radio_read(buffer, 100, &rssi, &snr, portMAX_DELAY))) {
                 DEBUG_PRINT("recv...");
-                if (strlen((char *) buffer)) {
-                    buffer[len] = 0;    //terminate
-                    //~ thetask->add_message_row((char *) buffer, MSG_TYPE_RECV);
-                    add_message_row((char *) buffer, MSG_TYPE_RECV);
-                    if(thetask->echo)
-                        radio_write(buffer, len);
-                }
-                //~ else
-                    //~ thetask->add_message_row("ping",MSG_TYPE_NOTIFY);
-            //~ }
-            //~ else {
-                //~ DEBUG_PRINT("read fail");
+                //~ if (strlen((char *) buffer)) {
+                    //~ buffer[len] = 0;    //terminate
+                    //~ add_message_row((char *) buffer, MSG_TYPE_RECV);
+                    //~ if(thetask->echo)
+                        //~ radio_write(buffer, len);
+                //~ }
             }
             else
                 vTaskDelay(10); //CHECKME: why? driver bug?

@@ -329,9 +329,9 @@ void system_init(void)
 
 	TIMER_init();
 
-	HWTIMER_CLOCK_init();
+	//~ HWTIMER_CLOCK_init();
 
-	HWTIMER_init();
+	//~ HWTIMER_init();
 
 	USB_DEVICE_INSTANCE_init();
 }
