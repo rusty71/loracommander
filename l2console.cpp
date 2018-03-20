@@ -9,13 +9,22 @@
 //~ #include "FreeRTOS_CLI.h"
 //~ #include "vt100.h"
 
-//~ #include <stdint.h>
-//~ #include <stdio.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <ctype.h>
 
+#define MAX_LOGO_ROWS 7
+const char *logo[MAX_LOGO_ROWS] = {
+"                         _     _ ",
+"                        (_)   | |",
+" ____   ___   ____  ____ _  __| |",
+"|  _ \\ / _ \\ / _  |/ ___) |/ _  |",
+"| | | | |_| ( (_| | |   | ( (_| |",
+"|_| |_|\\___/ \\___ |_|   |_|\\____|",
+"            (_____|              "};
 
 #define L2CONSOLE_STACK_SIZE (2048 / sizeof(portSTACK_TYPE))
 #define L2CONSOLE_PRIORITY (tskIDLE_PRIORITY + 1)
@@ -56,7 +65,9 @@ class VT100 {
         BLINK_OFF = 25,
         REVERSE_OFF = 27,
     };
-
+    #define FOREGROUND 30
+    #define BACKGROUND 40
+    
     enum Colors {
         BLACK = 0,
         RED = 1,
@@ -500,6 +511,71 @@ class VT100 {
         //~ return print( &buf, format, args );
     //~ }
 
+    //~ #define MATRIX_COLS 42
+    //~ #define MATRIX_LINES 18
+
+    int lines = 40;
+    int cols = 80;
+    
+    void sub_d(int p, int s, int x, int y)
+    {
+      uint8_t r;
+      uint8_t g;
+
+      r = (p % 16) * 16;
+      g = 180 - p;
+      if (r < 10) SetAttribute(FOREGROUND+BLACK); // forground color black
+      else
+      {
+        if (g > 170) SetAttribute(FOREGROUND+WHITE);
+        else if (g > 169) SetAttribute(FOREGROUND+GREEN );
+      }
+
+      if ((y >= 0) && (y < lines) && (x < cols))
+      {
+        int xx, yy;
+        xx = x;
+        yy = y;
+        SetCursorPos(yy, xx);
+        char c;
+        c = 33 + (x * y) % 200;
+        putch(c);
+      }
+    }
+
+    int t[100];
+
+    void screensave(void)
+    {
+      int i;
+      int x;
+      int y;
+      int k;
+
+
+        for (k = 1; k < cols; k++)
+        {
+          i = (int) (((double)rand()/(double)RAND_MAX) * cols);
+          //~ i= 23;
+          if (t[i] > 28 || t[i]<0) {
+              t[i] = 0;
+            }
+          UART_printInt(t[i]);
+          UART_write((uint8_t *)"\n\r",2);
+          t[i] = t[i] + 1;
+          y = t[i];
+          sub_d( 0     , 0, i, y - 6);
+          sub_d( 2  + x, 0, i, y - 5  );
+          sub_d( 2  + x, 0, i, y - 4  );
+          sub_d( 10 + x, 0, i, y - 3 );
+          sub_d( 10 + x, 0, i, y - 2 );
+          sub_d( 11 + x, 0, i, y - 1 );
+          sub_d( 0     , 2 + x, i, y );
+        }
+        vTaskDelay(1);
+
+    }
+
   private:
     char temp[STRING_STACK_LIMIT];
     int x = 0, y = 0;
@@ -736,7 +812,6 @@ class mainWin {
         int cli_row = rows;
         vt100.SetCursorPos(cli_row, 0);
         vt100.printf("CLI>");
-        add_message_row((char *)"static hello welcome", MSG_TYPE_NOTIFY);
 
         while (1) {
             readline(cli_buf, cli_row, 4, columns - 4);
@@ -766,15 +841,17 @@ class mainWin {
         while (1) {
             if ((len = radio_read(buffer, 100, &rssi, &snr, portMAX_DELAY))) {
                 DEBUG_PRINT("recv...");
-                //~ if (strlen((char *) buffer)) {
+                if (strlen((char *) buffer)) {
+                    sprintf((char*)(&buffer[len]), "[%d:%d]", snr,rssi);
                     //~ buffer[len] = 0;    //terminate
-                    //~ add_message_row((char *) buffer, MSG_TYPE_RECV);
-                    //~ if(thetask->echo)
-                        //~ radio_write(buffer, len);
-                //~ }
+                    add_message_row((char *) buffer, MSG_TYPE_RECV);
+                    if(thetask->echo)
+                        radio_write(buffer, len);
+                }
             }
-            else
-                vTaskDelay(10); //CHECKME: why? driver bug?
+            else {
+                vTaskDelay(10);
+            }
         }
     }
 
@@ -794,7 +871,32 @@ class mainWin {
 
     void run(void) {
         vt100.ClearScreen(2);
+        vt100.SetCursorMode(false);
+        //~ while(1)
+            //~ vt100.screensave();
         //~ print_status();
+        for(int j = 0; j < 6; j++){
+            for(int i = 0; i < MAX_LOGO_ROWS; i++) {
+                vt100.PutStringAt(i+1, 1, (char *)logo[i]);
+                vTaskDelay(1);
+            }
+            vt100.SetAttribute(VT100::ATTR_OFF, VT100::RED, VT100::BLACK);
+            for(int i = 0; i < MAX_LOGO_ROWS; i++) {
+                vt100.PutStringAt(i+1, 1, (char *)logo[i]);
+                vTaskDelay(1);
+            }
+            vt100.SetAttribute(VT100::ATTR_OFF, VT100::GREEN, VT100::BLACK);
+            for(int i = 0; i < MAX_LOGO_ROWS; i++) {
+                vt100.PutStringAt(i+1, 1, (char *)logo[i]);
+                vTaskDelay(1);
+            }
+            vt100.SetAttribute(VT100::ATTR_OFF, VT100::BLUE, VT100::BLACK);
+            for(int i = 0; i < MAX_LOGO_ROWS; i++) {
+                vt100.PutStringAt(i+1, 1, (char *)logo[i]);
+                vTaskDelay(1);
+            }
+        }
+        msg_idx = MAX_LOGO_ROWS+1;
         cli();
     }
 
@@ -855,7 +957,7 @@ void start_l2console(void)
 void l2console_task(void *p)
 {
     (void) p;
-    int columns = 42, rows = 18;
+    int columns = 80, rows = 24;
 
     cdc_init();
     radio_init();
