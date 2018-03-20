@@ -8,11 +8,11 @@
 
 extern "C" {
 void pre_sleep(TickType_t *time) {
-    //~ gpio_set_pin_level(LED_YELLOW,false);
+    gpio_set_pin_level(LED_YELLOW,false);
 }
 
 void post_sleep(TickType_t *time) {
-    //~ gpio_set_pin_level(LED_YELLOW,true);
+    gpio_set_pin_level(LED_YELLOW,true);
 }
 
 //~ void TC3_Handler(void){

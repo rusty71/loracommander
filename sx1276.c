@@ -1217,7 +1217,7 @@ void SX1276SetRx( uint32_t timeout )
         break;
     }
 
-    //~ UART_println("SX1276SetRx:Clear buffer");
+    DEBUG_PRINT("SX1276SetRx:Clear buffer");
     memset( RxTxBuffer, 0, ( size_t )RX_BUFFER_SIZE );
 
     SX1276.Settings.State = RF_RX_RUNNING;
@@ -1256,7 +1256,7 @@ void SX1276SetRx( uint32_t timeout )
             SX1276SetOpMode( RFLR_OPMODE_RECEIVER_SINGLE );
         }
     }
-    //~ UART_println("SX1276SetRx:return()");
+    DEBUG_PRINT("SX1276SetRx:return()");
 }
 
 void SX1276SetTx( uint32_t timeout )

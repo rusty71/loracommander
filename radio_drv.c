@@ -37,12 +37,16 @@
 #define LORA_FIX_LENGTH_PAYLOAD_ON                  false
 #define LORA_IQ_INVERSION_ON                        false
 
+#define RSSI_OFFSET_LF                              -164
+#define RSSI_OFFSET_HF                              -157
+
 static SemaphoreHandle_t RadioSem;  //has radio
 static QueueHandle_t rxEventQ, txEventQ;         //global
 
 typedef enum
 {
     RXQ_DATA_RECEIVED = 0,
+    RXQ_CRC_ERROR,
     RXQ_TIMEOUT,
     RXQ_ERROR,
     RXQ_INTERRUPTED,
@@ -115,7 +119,7 @@ typedef enum
 
 typedef struct
 {
-    uint32_t                 Channel;
+    uint32_t Channel;
     int8_t   Power;
     uint32_t Bandwidth;
     uint32_t Datarate;
@@ -130,7 +134,9 @@ typedef struct
     bool     IqInverted;
     bool     RxContinuous;
     uint32_t TxTimeout;
-    uint8_t Size;       //packet sdize
+    uint8_t  Size;       //packet sdize
+    int8_t   SnrValue;
+    int16_t  RssiValue;
     RadioState_t State;
 }RadioLoRaSettings_t;
 
@@ -307,12 +313,94 @@ void SX1276SetOpMode( uint8_t opMode )
 
 void SX1276OnDio0Irq( void )
 {
-    gpio_set_pin_level(LED_YELLOW,true);
-    volatile uint8_t irqFlags = 0;
+    volatile EventQ_t rxnotify;
+
+    volatile int8_t irqFlags = 0;
+    //~ UART_println("IRQ");
     irqFlags = SX1276Read( REG_LR_IRQFLAGS );
+    //~ UART_printInt(irqFlags);
 
-    UART_printInt(irqFlags);
+    //clear all interrupts
+    SX1276Write( REG_LR_IRQFLAGS, irqFlags );
 
+
+    if(irqFlags & RFLR_IRQFLAGS_RXDONE) {
+        //~ UART_println("RX DONE");
+        int8_t snr = 0;
+    //~ gpio_set_pin_level(LED_YELLOW,true);
+
+        // Clear Irq
+        //~ SX1276Write( REG_LR_IRQFLAGS, RFLR_IRQFLAGS_RXDONE );   //CHECKME:why here/now?
+
+        //~ UART_print('?????????????????????');
+        if( ( irqFlags & RFLR_IRQFLAGS_PAYLOADCRCERROR_MASK ) == RFLR_IRQFLAGS_PAYLOADCRCERROR )
+        {
+            // Clear Irq
+            SX1276Write( REG_LR_IRQFLAGS, RFLR_IRQFLAGS_PAYLOADCRCERROR );
+            rxnotify.eType = RXQ_CRC_ERROR;
+        }
+        else {
+            rxnotify.eType = RXQ_DATA_RECEIVED;
+        }
+
+        Settings.SnrValue = SX1276Read( REG_LR_PKTSNRVALUE );
+        if( Settings.SnrValue & 0x80 ) // The SNR sign bit is 1
+        {
+            // Invert and divide by 4
+            snr = ( ( ~Settings.SnrValue + 1 ) & 0xFF ) >> 2;
+            snr = -snr;
+        }
+        else
+        {
+            // Divide by 4
+            snr = ( Settings.SnrValue & 0xFF ) >> 2;
+        }
+
+        int16_t rssi = SX1276Read( REG_LR_PKTRSSIVALUE );
+        if( snr < 0 )
+        {
+            if( Settings.Channel > RF_MID_BAND_THRESH )
+            {
+                Settings.RssiValue = RSSI_OFFSET_HF + rssi + ( rssi >> 4 ) + snr;
+            }
+            else
+            {
+                Settings.RssiValue = RSSI_OFFSET_LF + rssi + ( rssi >> 4 ) + snr;
+            }
+        }
+        else
+        {
+            if( Settings.Channel > RF_MID_BAND_THRESH )
+            {
+                Settings.RssiValue = RSSI_OFFSET_HF + rssi + ( rssi >> 4 );
+            }
+            else
+            {
+                Settings.RssiValue = RSSI_OFFSET_LF + rssi + ( rssi >> 4 );
+            }
+        }
+
+        Settings.Size = SX1276Read( REG_LR_RXNBBYTES );
+        SX1276ReadFifo( RxTxBuffer, Settings.Size );
+        rxnotify.pvData = RxTxBuffer;
+
+        //~ UART_print('?');
+        //~ UART_printInt(RxTxBuffer);
+        rxnotify.Len = Settings.Size;
+        rxnotify.rssi = Settings.RssiValue;
+        rxnotify.snr = Settings.SnrValue;
+        xQueueSendFromISR( rxEventQ, &rxnotify, 0 );   //CHECKME: overwrite?
+    }
+
+    if(irqFlags & RFLR_IRQFLAGS_TXDONE) {
+        //~ UART_println("TX done irq");
+        EventQ_t txnotify;
+
+        txnotify.eType = TXQ_DATA_SENT;
+        txnotify.pvData = NULL;
+        txnotify.Len = 0;
+        xQueueSendFromISR( txEventQ, &txnotify, 0 );
+    }
     //~ ASSERT(false);
     //~ volatile uint8_t irqFlags = 0;
 
@@ -759,6 +847,7 @@ void SX1276SetRx(void)  //lora only
     // DIO0=RxDone
     SX1276Write( REG_DIOMAPPING1, ( SX1276Read( REG_DIOMAPPING1 ) & RFLR_DIOMAPPING1_DIO0_MASK ) | RFLR_DIOMAPPING1_DIO0_00 );
 
+    //~ DEBUG_PRINT("reset fifo");
     SX1276Write( REG_LR_FIFORXBASEADDR, 0 );
     SX1276Write( REG_LR_FIFOADDRPTR, 0 );
 
@@ -766,7 +855,6 @@ void SX1276SetRx(void)  //lora only
 
     //continious
     SX1276SetOpMode( RFLR_OPMODE_RECEIVER );
-    DEBUG_PRINT("RX mode");
     
 }
 
@@ -1006,6 +1094,12 @@ uint16_t radio_read(uint8_t *data, uint16_t maxlen, int16_t *rssi, int8_t *snr, 
     BaseType_t xStatus;
     uint16_t ret = 0;
 
+
+    if(Settings.State == RF_TX_RUNNING) {
+        DEBUG_PRINT("TX running");
+        return 0;
+    }
+
     if( xSemaphoreTake( RadioSem, timeout ) == pdTRUE ) {
         DEBUG_PRINT("read(): got control");
         //~ ASSERT(Settings.State == RF_RX_RUNNING);
@@ -1024,7 +1118,7 @@ uint16_t radio_read(uint8_t *data, uint16_t maxlen, int16_t *rssi, int8_t *snr, 
                     ret = xReceivedStructure.Len;
                 *rssi = xReceivedStructure.rssi;
                 *snr = xReceivedStructure.snr;
-
+                DEBUG_PRINT(xReceivedStructure.pvData);
                 memcpy(data, xReceivedStructure.pvData, ret);
             }
             else if( xReceivedStructure.eType == RXQ_TIMEOUT ) {
@@ -1047,20 +1141,24 @@ uint16_t radio_write(uint8_t *data, uint16_t len){
     BaseType_t xStatus;
     uint16_t ret = 0;
 
+
     configASSERT(txEventQ);
 
-    rxnotify.eType = RXQ_INTERRUPTED;
-    rxnotify.pvData = NULL;
-    rxnotify.Len = 0;
-    
-    //always return to standby first
-    SX1276SetOpMode( RF_OPMODE_STANDBY );
+    if(Settings.State == RF_RX_RUNNING) {
+        rxnotify.eType = RXQ_INTERRUPTED;
+        rxnotify.pvData = NULL;
+        rxnotify.Len = 0;
+        DEBUG_PRINT("READ INTERRUPTING");
+        xQueueSend( rxEventQ, &rxnotify, 0 );   //CHECKME: overwrite?
+        DEBUG_PRINT("READ INTERRUPTED");
+        xSemaphoreGive(RadioSem);
+    }
 
-    xQueueSend( rxEventQ, &rxnotify, 0 );   //CHECKME: overwrite?
-    DEBUG_PRINT("READ INTERRUPTED");
-
+    Settings.State = RF_TX_RUNNING;
     if( xSemaphoreTake( RadioSem, portMAX_DELAY ) == pdTRUE ) {
         DEBUG_PRINT("GOT CONTROL");
+        //always return to standby first
+        SX1276SetOpMode( RF_OPMODE_STANDBY );   //CHECKME: needed?
         SX1276Send( data, len );                //copies data to fifo, fixed timeout
         xStatus = xQueueReceive( txEventQ, &xReceivedStructure, portMAX_DELAY );    //no timeout
         DEBUG_PRINT("EVENT");
@@ -1078,6 +1176,8 @@ uint16_t radio_write(uint8_t *data, uint16_t len){
         else {
             configASSERT(false);
         }
+        Settings.State = RF_STANDBY;
+
         xSemaphoreGive( RadioSem );       //give back radio control
     }
     else {
