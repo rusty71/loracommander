@@ -23,7 +23,7 @@
 
 #define RF_MID_BAND_THRESH                          525000000
 #define TX_OUTPUT_POWER                             0         // dBm
-#define LORA_BANDWIDTH                              9         // [7: 125 kHz,
+#define LORA_BANDWIDTH                              6         // [7: 125 kHz,
                                                               //  8: 250 kHz,
                                                               //  9: 500 kHz,
                                                               //  10: Reserved]
@@ -1088,6 +1088,8 @@ void SX1276Send( uint8_t *buffer, uint8_t size )
     SX1276SetTx();
 }
 
+static TaskHandle_t xTaskStateNotify = NULL;
+
 
 uint16_t radio_read(uint8_t *data, uint16_t maxlen, int16_t *rssi, int8_t *snr, TickType_t timeout) {
     EventQ_t  xReceivedStructure;
@@ -1095,9 +1097,10 @@ uint16_t radio_read(uint8_t *data, uint16_t maxlen, int16_t *rssi, int8_t *snr, 
     uint16_t ret = 0;
 
 
-    if(Settings.State == RF_TX_RUNNING) {
-        DEBUG_PRINT("TX running");
-        return 0;
+    while(Settings.State != RF_STANDBY) {
+        DEBUG_PRINT("Not IDLE");
+        xTaskStateNotify = xTaskGetCurrentTaskHandle();
+        ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
     }
 
     if( xSemaphoreTake( RadioSem, timeout ) == pdTRUE ) {
@@ -1107,6 +1110,7 @@ uint16_t radio_read(uint8_t *data, uint16_t maxlen, int16_t *rssi, int8_t *snr, 
         xQueueReset(rxEventQ);      //clear event queue
         SX1276SetRx();
         DEBUG_PRINT("read(): RX started");
+        xSemaphoreGive( RadioSem );       //give back radio control, TX might interrupt
         if( xQueueReceive( rxEventQ, &xReceivedStructure, timeout ) == pdPASS ) {  //TODO: subtract already elapsed time?
             DEBUG_PRINT("read(): event");
             if( xReceivedStructure.eType == RXQ_DATA_RECEIVED ) {
@@ -1128,7 +1132,6 @@ uint16_t radio_read(uint8_t *data, uint16_t maxlen, int16_t *rssi, int8_t *snr, 
                 DEBUG_PRINT("interrupted");
             }
         }
-        xSemaphoreGive( RadioSem );       //give back radio control, TX might interrupt
     }
 
     return ret;
@@ -1136,39 +1139,37 @@ uint16_t radio_read(uint8_t *data, uint16_t maxlen, int16_t *rssi, int8_t *snr, 
 
 uint16_t radio_write(uint8_t *data, uint16_t len){
     EventQ_t rxnotify;
-
     EventQ_t xReceivedStructure;
     BaseType_t xStatus;
     uint16_t ret = 0;
 
 
-    configASSERT(txEventQ);
-
-    if(Settings.State == RF_RX_RUNNING) {
-        rxnotify.eType = RXQ_INTERRUPTED;
-        rxnotify.pvData = NULL;
-        rxnotify.Len = 0;
-        DEBUG_PRINT("READ INTERRUPTING");
-        xQueueSend( rxEventQ, &rxnotify, 0 );   //CHECKME: overwrite?
-        DEBUG_PRINT("READ INTERRUPTED");
-        xSemaphoreGive(RadioSem);
-    }
-
-    Settings.State = RF_TX_RUNNING;
     if( xSemaphoreTake( RadioSem, portMAX_DELAY ) == pdTRUE ) {
+        //RX running, send interrupt event
+        if(Settings.State == RF_RX_RUNNING) {
+            Settings.State = RF_TX_RUNNING; //Dont allow read() to take control after interrupt event
+            rxnotify.eType = RXQ_INTERRUPTED;
+            rxnotify.pvData = NULL;
+            rxnotify.Len = 0;
+            xQueueSend( rxEventQ, &rxnotify, 0 );   //CHECKME: overwrite?
+        }
         DEBUG_PRINT("GOT CONTROL");
         //always return to standby first
         SX1276SetOpMode( RF_OPMODE_STANDBY );   //CHECKME: needed?
         SX1276Send( data, len );                //copies data to fifo, fixed timeout
-        xStatus = xQueueReceive( txEventQ, &xReceivedStructure, portMAX_DELAY );    //no timeout
+        xStatus = xQueueReceive( txEventQ, &xReceivedStructure, 10000 );    //no timeout
         DEBUG_PRINT("EVENT");
         
         if( xStatus == pdPASS ) {
             if( xReceivedStructure.eType == TXQ_DATA_SENT ) {
                 ret = len;
+                Settings.State = RF_STANDBY;
+                xTaskNotifyGive( xTaskStateNotify );
                 DEBUG_PRINT("SENT");
             }
             else if (xReceivedStructure.eType == TXQ_TIMEOUT ) {
+                Settings.State = RF_STANDBY;
+                xTaskNotifyGive( xTaskStateNotify );
                 DEBUG_PRINT("SENT timeout");
             }
         
@@ -1177,7 +1178,6 @@ uint16_t radio_write(uint8_t *data, uint16_t len){
             configASSERT(false);
         }
         Settings.State = RF_STANDBY;
-
         xSemaphoreGive( RadioSem );       //give back radio control
     }
     else {

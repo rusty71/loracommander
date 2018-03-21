@@ -514,8 +514,8 @@ class VT100 {
     //~ #define MATRIX_COLS 42
     //~ #define MATRIX_LINES 18
 
-    int lines = 40;
-    int cols = 80;
+    int lines = 18;
+    int cols = 42;
     
     void sub_d(int p, int s, int x, int y)
     {
@@ -560,8 +560,8 @@ class VT100 {
           if (t[i] > 28 || t[i]<0) {
               t[i] = 0;
             }
-          UART_printInt(t[i]);
-          UART_write((uint8_t *)"\n\r",2);
+          //~ UART_printInt(t[i]);
+          //~ UART_write((uint8_t *)"\n\r",2);
           t[i] = t[i] + 1;
           y = t[i];
           sub_d( 0     , 0, i, y - 6);
@@ -865,38 +865,36 @@ class mainWin {
             else {
                 DEBUG_PRINT("ping fail");
             }
-            vTaskDelay(300);
+            vTaskDelay(3000);
         }
     }
 
     void run(void) {
         vt100.ClearScreen(2);
-        vt100.SetCursorMode(false);
-        //~ while(1)
-            //~ vt100.screensave();
-        //~ print_status();
-        for(int j = 0; j < 6; j++){
-            for(int i = 0; i < MAX_LOGO_ROWS; i++) {
-                vt100.PutStringAt(i+1, 1, (char *)logo[i]);
-                vTaskDelay(1);
-            }
-            vt100.SetAttribute(VT100::ATTR_OFF, VT100::RED, VT100::BLACK);
-            for(int i = 0; i < MAX_LOGO_ROWS; i++) {
-                vt100.PutStringAt(i+1, 1, (char *)logo[i]);
-                vTaskDelay(1);
-            }
-            vt100.SetAttribute(VT100::ATTR_OFF, VT100::GREEN, VT100::BLACK);
-            for(int i = 0; i < MAX_LOGO_ROWS; i++) {
-                vt100.PutStringAt(i+1, 1, (char *)logo[i]);
-                vTaskDelay(1);
-            }
-            vt100.SetAttribute(VT100::ATTR_OFF, VT100::BLUE, VT100::BLACK);
-            for(int i = 0; i < MAX_LOGO_ROWS; i++) {
-                vt100.PutStringAt(i+1, 1, (char *)logo[i]);
-                vTaskDelay(1);
-            }
-        }
-        msg_idx = MAX_LOGO_ROWS+1;
+        //~ vt100.SetCursorMode(false);
+        print_status();
+        //~ for(int j = 0; j < 6; j++){
+            //~ for(int i = 0; i < MAX_LOGO_ROWS; i++) {
+                //~ vt100.PutStringAt(i+1, 1, (char *)logo[i]);
+                //~ vTaskDelay(1);
+            //~ }
+            //~ vt100.SetAttribute(VT100::ATTR_OFF, VT100::RED, VT100::BLACK);
+            //~ for(int i = 0; i < MAX_LOGO_ROWS; i++) {
+                //~ vt100.PutStringAt(i+1, 1, (char *)logo[i]);
+                //~ vTaskDelay(1);
+            //~ }
+            //~ vt100.SetAttribute(VT100::ATTR_OFF, VT100::GREEN, VT100::BLACK);
+            //~ for(int i = 0; i < MAX_LOGO_ROWS; i++) {
+                //~ vt100.PutStringAt(i+1, 1, (char *)logo[i]);
+                //~ vTaskDelay(1);
+            //~ }
+            //~ vt100.SetAttribute(VT100::ATTR_OFF, VT100::BLUE, VT100::BLACK);
+            //~ for(int i = 0; i < MAX_LOGO_ROWS; i++) {
+                //~ vt100.PutStringAt(i+1, 1, (char *)logo[i]);
+                //~ vTaskDelay(1);
+            //~ }
+        //~ }
+        //~ msg_idx = MAX_LOGO_ROWS+1;
         cli();
     }
 
@@ -957,7 +955,7 @@ void start_l2console(void)
 void l2console_task(void *p)
 {
     (void) p;
-    int columns = 80, rows = 24;
+    int columns = 42, rows = 18;
 
     cdc_init();
     radio_init();
