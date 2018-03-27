@@ -184,7 +184,7 @@ extern void post_sleep(uint32_t *time);
 #define configTIMER_TASK_PRIORITY (2)
 #endif
 
-#define configTIMER_QUEUE_LENGTH 2
+#define configTIMER_QUEUE_LENGTH 10
 
 // <o> Timer task stack size <32-512:4>
 // <i> Default is 64
@@ -236,7 +236,7 @@ to exclude the API function. */
 // <q> Include task delay utilities
 // <id> freertos_vtaskdelayuntil
 #ifndef INCLUDE_vTaskDelayUntil
-#define INCLUDE_vTaskDelayUntil 0
+#define INCLUDE_vTaskDelayUntil 1
 #endif
 
 // <q> Include task delay function
@@ -291,9 +291,11 @@ to exclude the API function. */
 
 /* Normal assert() semantics without relying on the provision of an assert.h
 header file. */
+//~ #define configASSERT(x)     {if( ( x ) == 0 ) vAssertCalled( __FILE__, __LINE__ )}
 #define configASSERT(x)                                                                                                \
 	if ((x) == 0) {                                                                                                    \
 		taskDISABLE_INTERRUPTS();                                                                                      \
+        myvAssertCalled( __FILE__, __LINE__ );                                                                           \
 		for (;;)                                                                                                       \
 			;                                                                                                          \
 	}

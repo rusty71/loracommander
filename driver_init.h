@@ -26,6 +26,7 @@ extern "C" {
 #include <hal_usart_sync.h>
 #include <hal_spi_m_sync.h>
 #include <hal_timer.h>
+#include <tc_lite.h>
 
 #include "hal_usb_device.h"
 
@@ -40,6 +41,10 @@ void UART_init(void);
 void SPI_PORT_init(void);
 void SPI_CLOCK_init(void);
 void SPI_init(void);
+
+void HWTIMER_CLOCK_init(void);
+
+int8_t HWTIMER_init(void);
 
 void USB_DEVICE_INSTANCE_CLOCK_init(void);
 void USB_DEVICE_INSTANCE_init(void);

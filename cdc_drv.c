@@ -106,13 +106,15 @@ void cdc_wait_DTR(void)
 }
 
 static TaskHandle_t xTaskCDCEnabledNotify = NULL;
-
+static cdc_enabled = false;
 //blocks until USB host connected to CDC endpoint
 void cdc_wait_CDC(void)
 {
     uint32_t ulNotificationValue;
     //~ const TickType_t xMaxBlockTime = pdMS_TO_TICKS( 20000 );
 
+    if(cdc_enabled)
+        return;
 
     xTaskCDCEnabledNotify = xTaskGetCurrentTaskHandle();
     DEBUG_PRINT("Wait for CDC enable");
@@ -174,15 +176,18 @@ static bool usb_device_cb_enable_c(bool enabled)
 
     DEBUG_PRINT("CDC state:");
     if(enabled) {
+        cdc_enabled = true;
         if( xTaskCDCEnabledNotify != NULL ) {
             vTaskNotifyGiveFromISR( xTaskCDCEnabledNotify, &xHigherPriorityTaskWoken );
             xTaskCDCEnabledNotify = NULL;
         }
         DEBUG_PRINT("TRUE");
     }
-    else
-        DEBUG_PRINT("FALSE");
+    else {
+        cdc_enabled = false;
 
+        DEBUG_PRINT("FALSE");
+    }
 
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 

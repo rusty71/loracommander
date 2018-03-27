@@ -2,8 +2,9 @@
 #include "task.h"
 #include "driver_init.h"
 #include "cdc_drv.h"
+#include "radio_drv.h"
 #include "uart.h"
-#include "rtos_start.h"
+#include "l2console.h"
 
 extern "C" {
 void pre_sleep(TickType_t *time) {
@@ -15,17 +16,18 @@ void post_sleep(TickType_t *time) {
 }
 }
 
-
 int main(void)
 {
-	/* Initializes MCU, drivers and middleware */
-	system_init();
-    UART_println((char *)"UART test");
-    cdc_init();
+    system_init();
+    
+    start_l2console();
 
-    FREERTOS_example();
-
-	/* Replace with your application code */
-	while (1) {
-	}
+	vTaskStartScheduler();
 }
+
+//https://github.com/yorickdewid/Chat-Server/blob/master/chat_server.c
+//https://github.com/andregasser/chatsrv
+//https://www.beartooth.com/
+//https://www.kickstarter.com/projects/sonnet/sonnet-decentralized-mobile-communication/
+//https://www.thethingsnetwork.org/forum/t/lorawan-pager-project/6992
+//~ /lora ch=868500 pw=5 dr=12 cr=4 bw=7

@@ -455,6 +455,59 @@ drivers:
           input: Generic clock generator 1
         configuration:
           rtc_clk_selection: Generic clock generator 1
+  HWTIMER:
+    user_label: HWTIMER
+    definition: Atmel:SAMD21_Drivers:0.0.1::SAMD21G18A-AF::TC3::driver_config_definition::16-bit.Counter.Mode::Lite:TC:Timer
+    functionality: Timer
+    api: Lite:TC:Timer
+    configuration:
+      cc_cc0: 2048
+      cc_cc1: 0
+      cc_control: true
+      count_control: false
+      count_count: 0
+      ctrla_control: true
+      ctrla_enable: true
+      ctrla_mode: 2
+      ctrla_prescaler: DIV16
+      ctrla_prescsync: GCLK
+      ctrla_runstdby: true
+      ctrla_wavegen: NFRQ
+      ctrlbset_cmd: NONE
+      ctrlbset_control: false
+      ctrlbset_dir: false
+      ctrlbset_oneshot: false
+      ctrlc_control: false
+      ctrlc_cpten0: false
+      ctrlc_cpten1: false
+      dbgctrl_control: true
+      dbgctrl_dbgrun: false
+      evctrl_control: false
+      evctrl_evact: 'OFF'
+      evctrl_mceo0: false
+      evctrl_mceo1: false
+      evctrl_ovfeo: false
+      evctrl_tcei: false
+      evctrl_tcinv: false
+      intenset_control: true
+      intenset_err: false
+      intenset_mc0: true
+      intenset_mc1: false
+      intenset_ovf: false
+      intenset_syncrdy: false
+      readreq_addr: 0
+      readreq_control: false
+      readreq_rcont: false
+      readreq_rreq: false
+    optional_signals: []
+    variant: null
+    clocks:
+      domain_group:
+        nodes:
+        - name: TC
+          input: Generic clock generator 1
+        configuration:
+          tc_gclk_selection: Generic clock generator 1
   DMAC:
     user_label: DMAC
     definition: Atmel:SAMD21_Drivers:0.0.1::SAMD21G18A-AF::DMAC::driver_config_definition::DMAC::HAL:HPL:DMAC
