@@ -15,6 +15,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <math.h>
 
 #define MAX_LOGO_ROWS 7
 const char *logo[MAX_LOGO_ROWS] = {
@@ -26,7 +27,7 @@ const char *logo[MAX_LOGO_ROWS] = {
 "|_| |_|\\___/ \\___ |_|   |_|\\____|",
 "            (_____|              "};
 
-#define L2CONSOLE_STACK_SIZE (2048 / sizeof(portSTACK_TYPE))
+#define L2CONSOLE_STACK_SIZE (12000 / sizeof(portSTACK_TYPE))
 #define L2CONSOLE_PRIORITY (tskIDLE_PRIORITY + 1)
 
 TaskHandle_t xRadioRecvTask = NULL;
@@ -514,8 +515,8 @@ class VT100 {
     //~ #define MATRIX_COLS 42
     //~ #define MATRIX_LINES 18
 
-    int lines = 18;
-    int cols = 42;
+    int lines = 12;
+    int cols = 30;
     
     void sub_d(int p, int s, int x, int y)
     {
@@ -524,7 +525,10 @@ class VT100 {
 
       r = (p % 16) * 16;
       g = 180 - p;
-      if (r < 10) SetAttribute(FOREGROUND+BLACK); // forground color black
+      if (r < 10) {
+        SetAttribute(FOREGROUND+BLACK); // forground color black
+        SetAttribute(BACKGROUND+9); // background default (not black?)
+      }
       else
       {
         if (g > 170) SetAttribute(FOREGROUND+WHITE);
@@ -552,6 +556,8 @@ class VT100 {
       int y;
       int k;
 
+        //replace mode
+        printf("\033[4l");
 
         for (k = 1; k < cols; k++)
         {
@@ -572,7 +578,10 @@ class VT100 {
           sub_d( 11 + x, 0, i, y - 1 );
           sub_d( 0     , 2 + x, i, y );
         }
-        vTaskDelay(1);
+        //~ volatile TickType_t now;
+        //~ now = xTaskGetTickCount();
+        //~ while((xTaskGetTickCount()<(now+10)))
+            //~ ;
 
     }
 
@@ -594,10 +603,41 @@ typedef enum {
 extern "C" { void recv_task_wrapper(void*); };
 extern "C" { void ping_task_wrapper(void*); };
     
+typedef enum {
+    CMD_ECHO = 0,
+    CMD_PING,
+    CMD_STATUS,
+    CMD_LORA,
+    CMD_LAST
+} commandidx_t;
+
+typedef struct command_t{
+    const char * command;
+    commandidx_t command_idx;
+} command_t;
+
+const command_t commands[]={
+    { "/echo" , CMD_ECHO   },
+    { "/ping" , CMD_PING   },
+    { "/status", CMD_STATUS },
+    { "/lora" , CMD_LORA   },
+    { "" , CMD_LAST   }
+};
+
 class mainWin {
     #define MAX_COLS 80
     #define RECV_TASK_STACK_SIZE (1024 / sizeof(portSTACK_TYPE))
     #define RECV_TASK_PRIORITY (tskIDLE_PRIORITY + 1)
+    #define TUNE_FREQ_MIN 800000000
+    #define TUNE_FREQ_MAX 900000000
+    #define TUNE_POWER_MIN 0
+    #define TUNE_POWER_MAX 20
+    #define TUNE_CODERATE_MIN 0
+    #define TUNE_CODERATE_MAX 8
+    #define TUNE_DATARATE_MIN 7
+    #define TUNE_DATARATE_MAX 13
+    #define TUNE_BANDWIDTH_MIN 0
+    #define TUNE_BANDWIDTH_MAX 10
 
   public:
     mainWin(int rows, int columns) {
@@ -636,6 +676,7 @@ class mainWin {
         uint8_t restorex, restorey;
         int column = 0;
         DEBUG_PRINT("add row");
+        vt100.GetCursorPos(&restorey, &restorex);
         if (strlen(msg) > 42)
             msg[42] = 0;
         int msg_rows = rows - 2;
@@ -664,8 +705,8 @@ class mainWin {
             default:
                 vt100.SetAttribute(VT100::ATTR_OFF, VT100::WHITE, VT100::BLACK);
         }
-        vt100.GetCursorPos(&restorey, &restorex);
         vt100.PutStringAt(msg_idx, column, msg);
+        print_status();
         vt100.SetCursorPos(restorey, restorex);
         msg_idx++;
     }
@@ -673,12 +714,57 @@ class mainWin {
     void print_status(void) {
         uint8_t restorex, restorey;
         int status_row = rows - 1;
+        RadioLoRaSettings_t Settings;
+        radio_get_config(&Settings);
 
         vt100.GetCursorPos(&restorey, &restorex);
         vt100.SetAttribute(VT100::ATTR_OFF, VT100::WHITE, VT100::BLUE);
-        vt100.SetCursorPos(status_row, 10);
-        vt100.printf("Status Line");
-        //~ radio_status(status_buffer);
+        vt100.SetCursorPos(status_row, 0);
+        vt100.ClearLine(2);
+
+
+        int bandwidth;
+        switch( Settings.Bandwidth )
+        {
+        case 0: // 7.8 kHz
+            bandwidth = 7800;
+            break;
+        case 1: // 10.4 kHz
+            bandwidth = 10400;
+            break;
+        case 2: // 15.6 kHz
+            bandwidth = 15600;
+            break;
+        case 3: // 20.8 kHz
+            bandwidth = 20800;
+            break;
+        case 4: // 31.2 kHz
+            bandwidth = 31200;
+            break;
+        case 5: // 41.4 kHz
+            bandwidth = 41400;
+            break;
+        case 6: // 62.5 kHz
+            bandwidth = 62500;
+            break;
+        case 7: // 125 kHz
+            bandwidth = 125000;
+            break;
+        case 8: // 250 kHz
+            bandwidth = 250000;
+            break;
+        case 9: // 500 kHz
+            bandwidth = 500000;
+            break;
+        }
+
+        vt100.printf("%d.%d|%d|%d.%d|SF%d|4/%d|%d|%d|",  Settings.Channel/1000000,(Settings.Channel%1000000)/100000,
+                                                                Settings.Power,
+                                                                bandwidth/1000,(bandwidth%1000)/100,
+                                                                Settings.Datarate,
+                                                                Settings.Coderate+4,
+                                                                Settings.SnrValue,
+                                                                Settings.RssiValue);
         //~ vt100.printf(status_buffer);
         vt100.SetAttribute(VT100::ATTR_OFF, VT100::WHITE, VT100::BLACK);
         vt100.SetCursorPos(restorey, restorex);
@@ -734,7 +820,6 @@ class mainWin {
                     curpos--;
                     curlen--;
                     vt100.SetCursorPos(starty, startx + curpos + 1);
-
                     for (i = curpos; i < curlen; i++) {
                         str[i] = str[i + 1];
                     }
@@ -775,34 +860,184 @@ class mainWin {
     
     bool cli_command(char * command, char * outbuf) {
         char *arg = command; //TODO bounds
+        commandidx_t cmd_idx = CMD_LAST;
+
         while(!isspace(*arg++))
             ;
-        if(!strncmp("/echo", command, command-arg)){
-            if(echo) {
-                echo=false;
-                add_message_row((char *)"echo OFF", MSG_TYPE_NOTIFY);
-            }
-            else {
-                echo=true;
-                add_message_row((char *)"echo ON", MSG_TYPE_NOTIFY);
+        for(int idx = 0; idx < CMD_LAST; idx++) {
+            if(!strncmp(commands[idx].command, command, strlen(commands[idx].command))) {
+                cmd_idx = commands[idx].command_idx;
             }
         }
-        else if(!strncmp("/ping", command, command-arg)){
-            if(eTaskGetState(xPingTask) == eSuspended) {
-                vTaskResume(xPingTask);
-                add_message_row((char *)"ping ON", MSG_TYPE_NOTIFY);
-            }
-            else {
-                vTaskSuspend(xPingTask);
-                add_message_row((char *)"ping OFF", MSG_TYPE_NOTIFY);
-            }
+        switch(cmd_idx) {
+            case CMD_ECHO:
+                if(echo) {
+                    echo=false;
+                    add_message_row((char *)"echo OFF", MSG_TYPE_NOTIFY);
+                }
+                else {
+                    echo=true;
+                    add_message_row((char *)"echo ON", MSG_TYPE_NOTIFY);
+                }
+                break;
+            case CMD_PING:
+                if(eTaskGetState(xPingTask) == eSuspended) {
+                    vTaskResume(xPingTask);
+                    add_message_row((char *)"ping ON", MSG_TYPE_NOTIFY);
+                }
+                else {
+                    vTaskSuspend(xPingTask);
+                    add_message_row((char *)"ping OFF", MSG_TYPE_NOTIFY);
+                }
+                break;
+            case CMD_STATUS:
+                vt100.ClearScreen(2);
+                vt100.SetCursorPos(1,1);
+
+                while(1)
+                    vt100.screensave();
+                print_status();
+                break;
+            case CMD_LORA:
+                RadioLoRaSettings_t Settings;
+                radio_get_config(&Settings);
+                while(!isalpha(*arg++)) //first argument
+                    ;
+                arg--;
+
+                add_message_row("lora", MSG_TYPE_ERROR);
+                while(arg < (command+strlen(command))) {
+                    //~ add_message_row(arg, MSG_TYPE_ERROR);
+                    if(!strncmp(arg, "ch=", 3)) {
+                        arg += 3;
+                        add_message_row("set channel", MSG_TYPE_ERROR);
+                        if(*arg=='\0') {
+                            add_message_row("end of string", MSG_TYPE_ERROR);
+                            break;
+                        }
+                        add_message_row(arg, MSG_TYPE_ERROR);
+                        char *next;
+                        long int freq;
+                        char buffer[40];
+                        freq = strtol(arg, &next, 10)*1000;
+                        if(freq) {
+                            if((TUNE_FREQ_MIN < freq) && (freq < TUNE_FREQ_MAX)) {
+                                sprintf(buffer, "Channel set to %dkHz\n\r", freq/1000);
+                                Settings.Channel = freq;
+                            }
+                            else {
+                                sprintf(buffer, "Out of range %dkHz\n\r", freq/1000);
+                            }
+                            add_message_row(buffer, MSG_TYPE_ERROR);
+                        }
+                        if(arg==next) {
+                            add_message_row("end of string", MSG_TYPE_ERROR);
+                            break;
+                        }
+                        arg=next;
+                    }
+                    else if(!strncmp(arg, "pw=", 3)) {
+                        arg += 3;
+                        char *next;
+                        long int power;
+                        char buffer[40];
+                        power = strtol(arg, &next, 10);
+                        if(power) {
+                            if((TUNE_POWER_MIN < power) && (power < TUNE_POWER_MAX)) {
+                                sprintf(buffer, "Power set to %d\n\r", power);
+                                Settings.Power = power;
+                            }
+                            else {
+                                sprintf(buffer, "Out of range %d\n\r", power);
+                            }
+                            add_message_row(buffer, MSG_TYPE_ERROR);
+                        }
+                        if(arg==next) {
+                            add_message_row("end of string", MSG_TYPE_ERROR);
+                            break;
+                        }
+                        arg=next;
+                    }
+                    else if(!strncmp(arg, "dr=", 3)) {
+                        arg += 3;
+                        char *next;
+                        long int datarate;
+                        char buffer[40];
+                        datarate = strtol(arg, &next, 10);
+                        if(datarate) {
+                            if((TUNE_DATARATE_MIN < datarate) && (datarate < TUNE_DATARATE_MAX)) {
+                                sprintf(buffer, "Datarate set to %d\n\r", datarate);
+                                Settings.Datarate = datarate;
+                            }
+                            else {
+                                sprintf(buffer, "Out of range %d\n\r", datarate);
+                            }
+                            add_message_row(buffer, MSG_TYPE_ERROR);
+                        }
+                        if(arg==next) {
+                            add_message_row("end of string", MSG_TYPE_ERROR);
+                            break;
+                        }
+                        arg=next;
+                    }
+                    else if(!strncmp(arg, "cr=", 3)) {
+                        arg += 3;
+                        char *next;
+                        long int coderate;
+                        char buffer[40];
+                        coderate = strtol(arg, &next, 10);
+                        if(coderate) {
+                            if((TUNE_CODERATE_MIN < coderate) && (coderate < TUNE_CODERATE_MAX)) {
+                                sprintf(buffer, "Coderate set to %d\n\r", coderate);
+                                Settings.Coderate = coderate;
+                            }
+                            else {
+                                sprintf(buffer, "Out of range %d\n\r", coderate);
+                            }
+                            add_message_row(buffer, MSG_TYPE_ERROR);
+                        }
+                        if(arg==next) {
+                            add_message_row("end of string", MSG_TYPE_ERROR);
+                            break;
+                        }
+                        arg=next;
+                    }
+                    else if(!strncmp(arg, "bw=", 3)) {
+                        arg += 3;
+                        char *next;
+                        long int bandwidth;
+                        char buffer[40];
+                        bandwidth = strtol(arg, &next, 10);
+                        if(bandwidth) {
+                            if((TUNE_BANDWIDTH_MIN < bandwidth) && (bandwidth < TUNE_BANDWIDTH_MAX)) {
+                                sprintf(buffer, "Bandwidth set to %d\n\r", bandwidth);
+                                Settings.Bandwidth = bandwidth;
+                            }
+                            else {
+                                sprintf(buffer, "Out of range %d\n\r", bandwidth);
+                            }
+                            add_message_row(buffer, MSG_TYPE_ERROR);
+                        }
+                        if(arg==next) {
+                            add_message_row("end of string", MSG_TYPE_ERROR);
+                            break;
+                        }
+                        arg=next;
+                    }
+                    else {
+                        arg+=1;
+                    }
+                }
+                radio_set_config(&Settings);
+
+                break;
+            case CMD_LAST:
+                break;
+            default:
+                add_message_row((char *)"unknow command", MSG_TYPE_ERROR);
+                break;
         }
-        else if(!strncmp("/status", command, command-arg)){
-            print_status();
-        }
-        else {
-            add_message_row((char *)"command not found", MSG_TYPE_ERROR);
-        }
+
         return true;
     }
     
@@ -842,8 +1077,8 @@ class mainWin {
             if ((len = radio_read(buffer, 100, &rssi, &snr, portMAX_DELAY))) {
                 DEBUG_PRINT("recv...");
                 if (strlen((char *) buffer)) {
-                    sprintf((char*)(&buffer[len]), "[%d:%d]", snr,rssi);
-                    //~ buffer[len] = 0;    //terminate
+                    //~ sprintf((char*)(&buffer[len]), "[%d:%d]", snr,rssi);
+                    buffer[len] = 0;    //terminate
                     add_message_row((char *) buffer, MSG_TYPE_RECV);
                     if(thetask->echo)
                         radio_write(buffer, len);
@@ -857,6 +1092,12 @@ class mainWin {
 
     void ping_task(void *p)
     {
+        TickType_t xLastWakeTime;
+        const TickType_t xFrequency = 3000;
+
+        // Initialise the xLastWakeTime variable with the current time.
+        xLastWakeTime = xTaskGetTickCount();
+
         DEBUG_PRINT("ping...");
         while (1) {
             if (radio_write((uint8_t *) "PING", 4)) {
@@ -865,13 +1106,23 @@ class mainWin {
             else {
                 DEBUG_PRINT("ping fail");
             }
-            vTaskDelay(3000);
+            vTaskDelayUntil( &xLastWakeTime, xFrequency );
         }
     }
 
-    void run(void) {
+    void run(void) {    
+    
         vt100.ClearScreen(2);
         //~ vt100.SetCursorMode(false);
+
+      //~ vt100.SetAttribute(FOREGROUND+VT100::BLACK); // forground color black
+      //~ vt100.SetAttribute(BACKGROUND+VT100::BLACK); // forground color black
+      //~ vt100.SetAttribute(BACKGROUND+9); // forground color black
+      //~ vt100.printf("TEST STRING"); // forground color black
+    //~ vTaskDelay(3000);
+    //~ while(1)
+        //~ vt100.screensave();
+
         print_status();
         //~ for(int j = 0; j < 6; j++){
             //~ for(int i = 0; i < MAX_LOGO_ROWS; i++) {
@@ -894,6 +1145,7 @@ class mainWin {
                 //~ vTaskDelay(1);
             //~ }
         //~ }
+        //~ vt100.SetCursorMode(true);
         //~ msg_idx = MAX_LOGO_ROWS+1;
         cli();
     }
@@ -901,7 +1153,7 @@ class mainWin {
   private:
     TaskHandle_t xRecvTask = NULL, xPingTask = NULL; 
     char cli_buf[MAX_COLS];
-    char status_buffer[MAX_COLS];
+    //~ char status_buffer[MAX_COLS];
 
     int rows, columns;
     int msg_idx = 1;

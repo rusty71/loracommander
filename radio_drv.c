@@ -13,7 +13,7 @@
 #include "timers.h"
 
 //~ #include <stdint.h>
-//~ #include <stdio.h>
+#include <stdio.h>
 #include <string.h>
 //~ #include <math.h>
 
@@ -22,13 +22,13 @@
 #define RF_FREQUENCY                                868300000 // Hz
 
 #define RF_MID_BAND_THRESH                          525000000
-#define TX_OUTPUT_POWER                             0         // dBm
-#define LORA_BANDWIDTH                              6         // [7: 125 kHz,
+#define TX_OUTPUT_POWER                             0        // dBm
+#define LORA_BANDWIDTH                              7         // [7: 125 kHz,
                                                               //  8: 250 kHz,
                                                               //  9: 500 kHz,
                                                               //  10: Reserved]
-#define LORA_SPREADING_FACTOR                       12         // [SF7..SF12]
-#define LORA_CODINGRATE                             4         // [1: 4/5,
+#define LORA_SPREADING_FACTOR                       7         // [SF7..SF12]
+#define LORA_CODINGRATE                             1         // [1: 4/5,
                                                               //  2: 4/6,
                                                               //  3: 4/7,
                                                               //  4: 4/8]
@@ -110,35 +110,7 @@ const RadioRegisters_t RadioRegsInit[] = RADIO_INIT_REGISTERS_VALUE;
 
 uint8_t RxTxBuffer[RX_BUFFER_SIZE];
 
-typedef enum
-{
-    RF_STANDBY = 0,
-    RF_RX_RUNNING,
-    RF_TX_RUNNING,
-}RadioState_t;
 
-typedef struct
-{
-    uint32_t Channel;
-    int8_t   Power;
-    uint32_t Bandwidth;
-    uint32_t Datarate;
-    bool     LowDatarateOptimize;
-    uint8_t  Coderate;
-    uint16_t PreambleLen;
-    bool     FixLen;
-    uint8_t  PayloadLen;
-    bool     CrcOn;
-    bool     FreqHopOn;
-    uint8_t  HopPeriod;
-    bool     IqInverted;
-    bool     RxContinuous;
-    uint32_t TxTimeout;
-    uint8_t  Size;       //packet sdize
-    int8_t   SnrValue;
-    int16_t  RssiValue;
-    RadioState_t State;
-}RadioLoRaSettings_t;
 
 RadioLoRaSettings_t Settings;
 
@@ -343,17 +315,17 @@ void SX1276OnDio0Irq( void )
             rxnotify.eType = RXQ_DATA_RECEIVED;
         }
 
-        Settings.SnrValue = SX1276Read( REG_LR_PKTSNRVALUE );
-        if( Settings.SnrValue & 0x80 ) // The SNR sign bit is 1
+        snr = SX1276Read( REG_LR_PKTSNRVALUE );
+        if( snr & 0x80 ) // The SNR sign bit is 1
         {
             // Invert and divide by 4
-            snr = ( ( ~Settings.SnrValue + 1 ) & 0xFF ) >> 2;
-            snr = -snr;
+            Settings.SnrValue = ( ( ~snr + 1 ) & 0xFF ) >> 2;
+            Settings.SnrValue = -Settings.SnrValue;
         }
         else
         {
             // Divide by 4
-            snr = ( Settings.SnrValue & 0xFF ) >> 2;
+            Settings.SnrValue = ( snr & 0xFF ) >> 2;
         }
 
         int16_t rssi = SX1276Read( REG_LR_PKTRSSIVALUE );
@@ -689,7 +661,8 @@ void SX1276SetRxConfig( RadioModems_t modem, uint32_t bandwidth,
     }
 
     if( ( ( bandwidth == 7 ) && ( ( datarate == 11 ) || ( datarate == 12 ) ) ) ||
-        ( ( bandwidth == 8 ) && ( datarate == 12 ) ) )
+        ( ( bandwidth == 8 ) && ( datarate == 12 ) ) ||
+        ( ( bandwidth < 7 )) )
     {
         Settings.LowDatarateOptimize = 0x01;
     }
@@ -1122,17 +1095,27 @@ uint16_t radio_read(uint8_t *data, uint16_t maxlen, int16_t *rssi, int8_t *snr, 
                     ret = xReceivedStructure.Len;
                 *rssi = xReceivedStructure.rssi;
                 *snr = xReceivedStructure.snr;
-                DEBUG_PRINT(xReceivedStructure.pvData);
                 memcpy(data, xReceivedStructure.pvData, ret);
+                Settings.State = RF_STANDBY;
+                //~ SX1276SetOpMode( RF_OPMODE_STANDBY );      //TODO: protect
+
             }
             else if( xReceivedStructure.eType == RXQ_TIMEOUT ) {
                 DEBUG_PRINT("timeout");
+                Settings.State = RF_STANDBY;
+                //~ SX1276SetOpMode( RF_OPMODE_STANDBY );   //TODO: protect
             }
             else if( xReceivedStructure.eType == RXQ_INTERRUPTED ) {
                 DEBUG_PRINT("interrupted");
+                //~ Settings.State = RF_STANDBY;        //set by interupter
+                //~ SX1276SetOpMode( RF_OPMODE_STANDBY );      //TODO: protect
             }
         }
+        else
+            configASSERT(false);
     }
+    else
+        configASSERT(false);
 
     return ret;
 }
@@ -1164,12 +1147,14 @@ uint16_t radio_write(uint8_t *data, uint16_t len){
             if( xReceivedStructure.eType == TXQ_DATA_SENT ) {
                 ret = len;
                 Settings.State = RF_STANDBY;
-                xTaskNotifyGive( xTaskStateNotify );
+                if( xTaskStateNotify )
+                    xTaskNotifyGive( xTaskStateNotify );
                 DEBUG_PRINT("SENT");
             }
             else if (xReceivedStructure.eType == TXQ_TIMEOUT ) {
                 Settings.State = RF_STANDBY;
-                xTaskNotifyGive( xTaskStateNotify );
+                if( xTaskStateNotify )
+                    xTaskNotifyGive( xTaskStateNotify );
                 DEBUG_PRINT("SENT timeout");
             }
         
@@ -1187,103 +1172,24 @@ uint16_t radio_write(uint8_t *data, uint16_t len){
     return ret;
 }
 
+void radio_get_config(RadioLoRaSettings_t *settings) {
+    *settings = Settings;    
+}
 
-//keep shadow copy of settings 
-//~ static RadioLoRaSettings_t radio_settings;
+void radio_set_config(RadioLoRaSettings_t *settings) {
+    Settings = *settings;
 
-//~ void radio_txconfig(RadioLoRaSettings_t *settings) {
-    //~ if((settings->Power    == radio_settings.Power)      &&
-    //~ (settings->Bandwidth   == radio_settings.Bandwidth)  &&
-    //~ (settings->Datarate    == radio_settings.Datarate)   &&
-    //~ (settings->Coderate    == radio_settings.Coderate)   &&
-    //~ (settings->PreambleLen == radio_settings.PreambleLen)&&
-    //~ (settings->FixLen      == radio_settings.FixLen)     &&
-    //~ (settings->CrcOn       == radio_settings.CrcOn)      &&
-    //~ (settings->FreqHopOn   == radio_settings.FreqHopOn)  &&
-    //~ (settings->TxTimeout   == radio_settings.TxTimeout))
-        //~ return;     //no change
-    //~ if( xSemaphoreTake( RadioSem, portMAX_DELAY ) == pdTRUE ) {
-        //~ //copy RX settings in shadow
-        //~ radio_settings.Power       = settings->Power;
-        //~ radio_settings.Bandwidth   = settings->Bandwidth;
-        //~ radio_settings.Datarate    = settings->Datarate;
-        //~ radio_settings.Coderate    = settings->Coderate;
-        //~ radio_settings.PreambleLen = settings->PreambleLen;
-        //~ radio_settings.FixLen      = settings->FixLen;
-        //~ radio_settings.CrcOn       = settings->CrcOn;
-        //~ radio_settings.FreqHopOn   = settings->FreqHopOn;
-        //~ radio_settings.TxTimeout   = settings->TxTimeout;    //TODO:TimeOnAir
+    SX1276SetChannel( Settings.Channel);
 
-        //~ Radio.SetTxConfig( MODEM_LORA, settings->Power,
-                                       //~ 0, 
-                                       //~ settings->Bandwidth,
-                                       //~ settings->Datarate, 
-                                       //~ settings->Coderate,
-                                       //~ settings->PreambleLen, 
-                                       //~ settings->FixLen,
-                                       //~ settings->CrcOn,
-                                       //~ settings->FreqHopOn,
-                                       //~ 0, 
-                                       //~ LORA_IQ_INVERSION_ON, 
-                                       //~ settings->TxTimeout );
-        //~ xSemaphoreGive( RadioSem );       //give back radio control
-    //~ }
-    //~ else
-        //~ configASSERT(false);
-//~ }
+    SX1276SetTxConfig( MODEM_LORA, Settings.Power, 0, Settings.Bandwidth,
+                                   Settings.Datarate, Settings.Coderate,
+                                   Settings.PreambleLen, Settings.FixLen,
+                                   true, 0, 0, Settings.IqInverted, Settings.TxTimeout );
 
-//~ void radio_rxconfig(RadioLoRaSettings_t *settings) {
-
-    //~ if((settings->Bandwidth== radio_settings.Bandwidth)  &&
-    //~ (settings->Datarate    == radio_settings.Datarate)   &&
-    //~ (settings->Coderate    == radio_settings.Coderate)   &&
-    //~ (settings->PreambleLen == radio_settings.PreambleLen)&&
-    //~ (settings->FixLen      == radio_settings.FixLen)     &&
-    //~ (settings->CrcOn       == radio_settings.CrcOn)      &&
-    //~ (settings->FreqHopOn   == radio_settings.FreqHopOn))
-        //~ return;     //no change
-
-    //~ if( xSemaphoreTake( RadioSem, portMAX_DELAY ) == pdTRUE ) {
-        //~ //copy RX settings
-        //~ radio_settings.Bandwidth   = settings->Bandwidth;
-        //~ radio_settings.Datarate    = settings->Datarate;
-        //~ radio_settings.Coderate    = settings->Coderate;
-        //~ radio_settings.PreambleLen = settings->PreambleLen;
-        //~ radio_settings.FixLen      = settings->FixLen;
-        //~ radio_settings.CrcOn       = settings->CrcOn;
-        //~ radio_settings.FreqHopOn   = settings->FreqHopOn;
-
-        //~ Radio.SetRxConfig( MODEM_LORA, 
-                                        //~ settings->Bandwidth, 
-                                        //~ settings->Datarate,
-                                        //~ settings->Coderate,
-                                        //~ 0, 
-                                        //~ settings->PreambleLen,
-                                        //~ LORA_SYMBOL_TIMEOUT,
-                                        //~ settings->FixLen,
-                                        //~ 0,      //payload len
-                                        //~ settings->CrcOn, 
-                                        //~ settings->FreqHopOn,
-                                        //~ 0,      //HopPeriod
-                                        //~ LORA_IQ_INVERSION_ON, 
-                                        //~ true    //rxContinuous
-                                        //~ );
-        //~ xSemaphoreGive( RadioSem );       //give back radio control
-    //~ }
-    //~ else
-        //~ configASSERT(false);
-                                    
-//~ }
-
-void radio_status(char * buffer) {
-    if( xSemaphoreTake( RadioSem, portMAX_DELAY ) == pdTRUE ) {
-        //~ Radio.GetStatus(buffer);
-        xSemaphoreGive( RadioSem );       //give back radio control
-    }
-    else {
-        configASSERT(false);
-    }
-
+    SX1276SetRxConfig( MODEM_LORA, Settings.Bandwidth, Settings.Datarate,
+                                   Settings.Coderate, 0, Settings.PreambleLen,
+                                   LORA_SYMBOL_TIMEOUT, Settings.FixLen,
+                                   0, false, 0, 0, Settings.IqInverted, true );
 }
 
 void radio_init(void)
@@ -1308,7 +1214,7 @@ void radio_init(void)
     Settings.Coderate     = LORA_CODINGRATE;
     Settings.PreambleLen  = LORA_PREAMBLE_LENGTH;
     Settings.FixLen       = LORA_FIX_LENGTH_PAYLOAD_ON;
-    Settings.CrcOn        = true;
+    Settings.CrcOn        = false;
     Settings.FreqHopOn    = false;
     Settings.TxTimeout    = 3000;
     Settings.IqInverted   = true;
@@ -1320,15 +1226,25 @@ void radio_init(void)
     SX1276SetOpMode( RF_OPMODE_STANDBY );
     Settings.State = RF_STANDBY;
 
-    SX1276SetTxConfig( MODEM_LORA, TX_OUTPUT_POWER, 0, LORA_BANDWIDTH,
-                                   LORA_SPREADING_FACTOR, LORA_CODINGRATE,
-                                   LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
-                                   true, 0, 0, LORA_IQ_INVERSION_ON, 3000 );
+    SX1276SetTxConfig( MODEM_LORA, Settings.Power, 0, Settings.Bandwidth,
+                                   Settings.Datarate, Settings.Coderate,
+                                   Settings.PreambleLen, Settings.FixLen,
+                                   true, 0, 0, Settings.IqInverted, Settings.TxTimeout );
     
-    SX1276SetRxConfig( MODEM_LORA, LORA_BANDWIDTH, LORA_SPREADING_FACTOR,
-                                   LORA_CODINGRATE, 0, LORA_PREAMBLE_LENGTH,
-                                   LORA_SYMBOL_TIMEOUT, LORA_FIX_LENGTH_PAYLOAD_ON,
-                                   0, true, 0, 0, LORA_IQ_INVERSION_ON, true );
+    SX1276SetRxConfig( MODEM_LORA, Settings.Bandwidth, Settings.Datarate,
+                                   Settings.Coderate, 0, Settings.PreambleLen,
+                                   LORA_SYMBOL_TIMEOUT, Settings.FixLen,
+                                   0, false, 0, 0, Settings.IqInverted, true );
+
+    //~ SX1276SetTxConfig( MODEM_LORA, TX_OUTPUT_POWER, 0, LORA_BANDWIDTH,
+                                   //~ LORA_SPREADING_FACTOR, LORA_CODINGRATE,
+                                   //~ LORA_PREAMBLE_LENGTH, LORA_FIX_LENGTH_PAYLOAD_ON,
+                                   //~ true, 0, 0, LORA_IQ_INVERSION_ON, 3000 );
+    
+    //~ SX1276SetRxConfig( MODEM_LORA, LORA_BANDWIDTH, LORA_SPREADING_FACTOR,
+                                   //~ LORA_CODINGRATE, 0, LORA_PREAMBLE_LENGTH,
+                                   //~ LORA_SYMBOL_TIMEOUT, LORA_FIX_LENGTH_PAYLOAD_ON,
+                                   //~ 0, true, 0, 0, LORA_IQ_INVERSION_ON, true );
 
     xSemaphoreGive(RadioSem);
 
